@@ -323,7 +323,7 @@ public sealed class TcgPage(AuthClient auth) : ContentPage
         if (tab == "Boosters")
         {
             var status = await auth.Request<BoosterStatusDto>(HttpMethod.Get, Prefix + "boosters/status");
-            body.Add(new Label { Text = $"{status.Remaining} / {status.DailyLimit} boosters · Renouvellement {status.ResetsAt:u}" });
+            body.Add(new Label { Text = status.IsUnlimited ? "Boosters illimités" : $"{status.Remaining} / {status.DailyLimit} boosters · Renouvellement {status.ResetsAt:u}" });
             var key = Guid.NewGuid().ToString();
             var open = Button("Ouvrir un booster", async () =>
             {
@@ -354,7 +354,7 @@ public sealed class TcgPage(AuthClient auth) : ContentPage
                     return Task.CompletedTask;
                 }));
             });
-            open.IsEnabled = status.Remaining > 0;
+            open.IsEnabled = status.IsUnlimited || status.Remaining > 0;
             body.Add(open);
             foreach (var o in await auth.Request<OpeningDto[]>(HttpMethod.Get, Prefix + "boosters/history"))
                 body.Add(new Label { Text = $"{o.OpenedAt:g} · {string.Join(", ", o.Cards.Select(x => x.Name))}" });

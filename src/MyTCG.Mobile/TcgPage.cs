@@ -252,7 +252,8 @@ public sealed class TcgPage(AuthClient auth) : ContentPage
                 {
                     "Tous",
                     "Personnage",
-                    "Action"
+                    "Effet",
+                    "Équipement"
                 },
                 SelectedIndex = 0
             };
@@ -468,7 +469,8 @@ public sealed class TcgPage(AuthClient auth) : ContentPage
             ItemsSource = new[]
             {
                 "Personnage",
-                "Action"
+                "Effet",
+                    "Équipement"
             },
             SelectedIndex = c?.CardType ?? 0
         };

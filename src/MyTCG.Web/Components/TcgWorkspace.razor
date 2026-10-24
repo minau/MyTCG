@@ -4,8 +4,11 @@
 @inject AuthClient Auth
 @inject Microsoft.JSInterop.IJSRuntime JS
 @using Microsoft.JSInterop
-<div class="tcg-workspace">
+<header>
+    <a class="brand" href="/"><span class="brand-mark" aria-hidden="true"></span><span>MyTCG</span></a>
 <button class="tcg-switcher secondary" disabled="@busy" aria-label="Ouvrir le menu" aria-expanded="@drawer" @onclick="()=>drawer=true">☰ Menu</button>
+</header>
+<div class="tcg-workspace">
 @if(drawer){<div class="drawer-backdrop" @onclick="()=>drawer=false"></div><aside class="tcg-drawer" role="dialog" aria-modal="true" aria-label="Menu principal" tabindex="-1" @ref="drawerElement" @onkeydown="DrawerKey"><button class="secondary" @onclick="()=>drawer=false">Fermer ×</button><h2>Mes TCG</h2>@foreach(var t in mine){<button class="secondary" disabled="@busy" aria-current="@(current?.Id==t.Id?"true":"false")" @onclick="()=>Select(t)">@if(t.CoverImage is {} tcgImage){<img class="switcher-cover" src="@tcgImage" alt="" referrerpolicy="no-referrer" />}else{<span>◇</span>} @t.Name @(t.IsAdmin?"· Administrateur":"") @(current?.Id==t.Id?"✓":"")</button>}@if(mine.Length==0){<p>Vous n’avez rejoint aucun univers.</p>}<h3>Mon Compte</h3><button class="secondary" disabled="@busy" aria-current='@(mode=="account"?"page":null)' @onclick='()=>Action("account")'>Mon Compte</button><h3>Actions</h3><button @onclick='()=>Action("create")'>Créer un TCG</button><button @onclick='()=>Action("join")'>Rejoindre par code</button><button @onclick='()=>Action("discover")'>Parcourir les TCG publics</button></aside>}
 @if(error is not null){<p class="notice error" role="alert">@error</p><button class="secondary" @onclick="Reload">Réessayer</button>}
 @if(mode=="account"){

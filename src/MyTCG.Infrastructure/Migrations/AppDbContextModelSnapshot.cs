@@ -152,6 +152,182 @@ namespace MyTCG.Infrastructure.Migrations
                     b.ToTable("AspNetUserTokens", (string)null);
                 });
 
+            modelBuilder.Entity("MyTCG.Domain.BoosterOpening", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("IdempotencyKey")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<DateTimeOffset>("OpenedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("TcgId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("TcgId", "UserId", "IdempotencyKey")
+                        .IsUnique();
+
+                    b.HasIndex("TcgId", "UserId", "OpenedAt");
+
+                    b.ToTable("BoosterOpening");
+                });
+
+            modelBuilder.Entity("MyTCG.Domain.BoosterOpeningCard", b =>
+                {
+                    b.Property<Guid>("BoosterOpeningId")
+                        .HasColumnType("uuid");
+
+                    b.Property<int>("Position")
+                        .HasColumnType("integer");
+
+                    b.Property<Guid>("CardId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("TcgId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("BoosterOpeningId", "Position");
+
+                    b.HasIndex("TcgId", "BoosterOpeningId");
+
+                    b.HasIndex("TcgId", "CardId");
+
+                    b.ToTable("BoosterOpeningCard");
+                });
+
+            modelBuilder.Entity("MyTCG.Domain.Card", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<int>("ActionCost")
+                        .HasColumnType("integer");
+
+                    b.Property<int?>("Attack")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("CardNumber")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<int>("CardType")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int?>("Defense")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Description")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<double>("DropWeight")
+                        .HasColumnType("double precision");
+
+                    b.Property<string>("ImageUrl")
+                        .HasColumnType("text");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<int>("Rarity")
+                        .HasColumnType("integer");
+
+                    b.Property<Guid>("TcgId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("TcgId", "CardNumber")
+                        .IsUnique();
+
+                    b.ToTable("Card", t =>
+                        {
+                            t.HasCheckConstraint("CK_Card_Cost", "\"ActionCost\" BETWEEN 1 AND 12");
+
+                            t.HasCheckConstraint("CK_Card_Stats", "(\"Attack\" IS NULL OR \"Attack\" >= 0) AND (\"Defense\" IS NULL OR \"Defense\" >= 0)");
+                        });
+                });
+
+            modelBuilder.Entity("MyTCG.Domain.Deck", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<bool>("IsPrimary")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<Guid>("TcgId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("TcgId", "UserId")
+                        .IsUnique()
+                        .HasFilter("\"IsPrimary\" = TRUE");
+
+                    b.ToTable("Deck");
+                });
+
+            modelBuilder.Entity("MyTCG.Domain.DeckCard", b =>
+                {
+                    b.Property<Guid>("DeckId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("CardId")
+                        .HasColumnType("uuid");
+
+                    b.Property<int>("Quantity")
+                        .HasColumnType("integer");
+
+                    b.Property<Guid>("TcgId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("DeckId", "CardId");
+
+                    b.HasIndex("TcgId", "CardId");
+
+                    b.HasIndex("TcgId", "DeckId");
+
+                    b.ToTable("DeckCard", t =>
+                        {
+                            t.HasCheckConstraint("CK_DeckCard_Quantity", "\"Quantity\" > 0");
+                        });
+                });
+
             modelBuilder.Entity("MyTCG.Domain.RefreshToken", b =>
                 {
                     b.Property<Guid>("Id")
@@ -180,6 +356,120 @@ namespace MyTCG.Infrastructure.Migrations
                     b.HasIndex("SessionId");
 
                     b.ToTable("RefreshTokens");
+                });
+
+            modelBuilder.Entity("MyTCG.Domain.Tcg", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("CoverImage")
+                        .HasColumnType("text");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("CreatorUserId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Description")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<int>("Visibility")
+                        .HasColumnType("integer");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CreatorUserId");
+
+                    b.ToTable("Tcg");
+                });
+
+            modelBuilder.Entity("MyTCG.Domain.TcgInvitation", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("CodeHash")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("ProtectedCode")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<DateTimeOffset?>("RevokedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("TcgId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CodeHash")
+                        .IsUnique();
+
+                    b.HasIndex("TcgId")
+                        .IsUnique()
+                        .HasFilter("\"RevokedAt\" IS NULL");
+
+                    b.ToTable("TcgInvitation");
+                });
+
+            modelBuilder.Entity("MyTCG.Domain.TcgMembership", b =>
+                {
+                    b.Property<Guid>("TcgId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset>("JoinedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("Role")
+                        .HasColumnType("integer");
+
+                    b.HasKey("TcgId", "UserId");
+
+                    b.HasIndex("UserId");
+
+                    b.ToTable("TcgMembership");
+                });
+
+            modelBuilder.Entity("MyTCG.Domain.UserCard", b =>
+                {
+                    b.Property<Guid>("TcgId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("CardId")
+                        .HasColumnType("uuid");
+
+                    b.Property<int>("Quantity")
+                        .HasColumnType("integer");
+
+                    b.HasKey("TcgId", "UserId", "CardId");
+
+                    b.HasIndex("TcgId", "CardId");
+
+                    b.ToTable("UserCard", t =>
+                        {
+                            t.HasCheckConstraint("CK_UserCard_Quantity", "\"Quantity\" > 0");
+                        });
                 });
 
             modelBuilder.Entity("MyTCG.Domain.UserSession", b =>
@@ -339,11 +629,121 @@ namespace MyTCG.Infrastructure.Migrations
                         .IsRequired();
                 });
 
+            modelBuilder.Entity("MyTCG.Domain.BoosterOpening", b =>
+                {
+                    b.HasOne("MyTCG.Domain.TcgMembership", null)
+                        .WithMany()
+                        .HasForeignKey("TcgId", "UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("MyTCG.Domain.BoosterOpeningCard", b =>
+                {
+                    b.HasOne("MyTCG.Domain.BoosterOpening", null)
+                        .WithMany("Cards")
+                        .HasForeignKey("TcgId", "BoosterOpeningId")
+                        .HasPrincipalKey("TcgId", "Id")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("MyTCG.Domain.Card", null)
+                        .WithMany()
+                        .HasForeignKey("TcgId", "CardId")
+                        .HasPrincipalKey("TcgId", "Id")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("MyTCG.Domain.Card", b =>
+                {
+                    b.HasOne("MyTCG.Domain.Tcg", null)
+                        .WithMany()
+                        .HasForeignKey("TcgId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("MyTCG.Domain.Deck", b =>
+                {
+                    b.HasOne("MyTCG.Domain.TcgMembership", null)
+                        .WithMany()
+                        .HasForeignKey("TcgId", "UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("MyTCG.Domain.DeckCard", b =>
+                {
+                    b.HasOne("MyTCG.Domain.Card", null)
+                        .WithMany()
+                        .HasForeignKey("TcgId", "CardId")
+                        .HasPrincipalKey("TcgId", "Id")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("MyTCG.Domain.Deck", null)
+                        .WithMany("Cards")
+                        .HasForeignKey("TcgId", "DeckId")
+                        .HasPrincipalKey("TcgId", "Id")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
             modelBuilder.Entity("MyTCG.Domain.RefreshToken", b =>
                 {
                     b.HasOne("MyTCG.Domain.UserSession", null)
                         .WithMany()
                         .HasForeignKey("SessionId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("MyTCG.Domain.Tcg", b =>
+                {
+                    b.HasOne("MyTCG.Infrastructure.AppUser", null)
+                        .WithMany()
+                        .HasForeignKey("CreatorUserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("MyTCG.Domain.TcgInvitation", b =>
+                {
+                    b.HasOne("MyTCG.Domain.Tcg", null)
+                        .WithMany()
+                        .HasForeignKey("TcgId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("MyTCG.Domain.TcgMembership", b =>
+                {
+                    b.HasOne("MyTCG.Domain.Tcg", null)
+                        .WithMany()
+                        .HasForeignKey("TcgId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("MyTCG.Infrastructure.AppUser", null)
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("MyTCG.Domain.UserCard", b =>
+                {
+                    b.HasOne("MyTCG.Domain.Card", null)
+                        .WithMany()
+                        .HasForeignKey("TcgId", "CardId")
+                        .HasPrincipalKey("TcgId", "Id")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("MyTCG.Domain.TcgMembership", null)
+                        .WithMany()
+                        .HasForeignKey("TcgId", "UserId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
                 });
@@ -355,6 +755,16 @@ namespace MyTCG.Infrastructure.Migrations
                         .HasForeignKey("UserId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
+                });
+
+            modelBuilder.Entity("MyTCG.Domain.BoosterOpening", b =>
+                {
+                    b.Navigation("Cards");
+                });
+
+            modelBuilder.Entity("MyTCG.Domain.Deck", b =>
+                {
+                    b.Navigation("Cards");
                 });
 #pragma warning restore 612, 618
         }

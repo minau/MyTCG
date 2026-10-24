@@ -113,3 +113,7 @@ docker compose --env-file .env -f deploy/docker-compose.yml up -d --build
 Les secrets sont injectés par environnement, sans copie dans les images. Le port PostgreSQL n’est pas publié en production ; le réseau applicatif est interne. Le mode local rend ce réseau joignable pour les outils de développement et lie les ports uniquement à `127.0.0.1`. Les volumes conservent PostgreSQL et les certificats Caddy. **Ne pas utiliser `down -v` sur une base à conserver.**
 
 Les instructions OVH, sauvegardes/restaurations et commandes de maintenance sont dans [docs/deployment.md](docs/deployment.md).
+
+## V2 — Univers, Studio, collections, boosters et decks
+
+Voir [la documentation V2](docs/V2.md) pour les migrations, routes API, probabilités, volumes et instructions Docker.

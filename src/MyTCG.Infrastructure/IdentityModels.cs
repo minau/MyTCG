@@ -17,6 +17,7 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : Ident
     protected override void OnModelCreating(ModelBuilder b)
     {
         base.OnModelCreating(b);
+        TcgModelConfiguration.Configure(b);
         b.Entity<AppUser>().Property(x => x.NormalizedEmail).IsRequired();
         b.Entity<AppUser>().HasIndex(x => x.NormalizedEmail).IsUnique();
         b.Entity<UserSession>().HasOne<AppUser>().WithMany().HasForeignKey(x => x.UserId).OnDelete(DeleteBehavior.Cascade);

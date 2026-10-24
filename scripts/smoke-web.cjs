@@ -21,7 +21,7 @@ const { chromium } = require(process.env.PLAYWRIGHT_MODULE || 'playwright-core')
  await page.getByRole('button',{name:/^Connexion/}).click();
  await page.getByRole('heading',{name:'Bienvenue, '+id+'.',exact:true}).waitFor();
  await page.screenshot({path:'/tmp/mytcg-dashboard.png',fullPage:true});
- if(await page.locator('.coming').count()!==4)throw Error('Missing future features');
+ await page.getByRole('heading',{name:'Votre prochain univers vous attend.'}).waitFor();
  const cookie=(await context.cookies()).find(c=>c.name==='mytcg.refresh');
  if(!cookie?.httpOnly || cookie.sameSite!=='Strict')throw Error('Cookie flags missing');
  if(await page.evaluate(()=>Object.keys(localStorage).length)!==0) throw Error('localStorage not empty');

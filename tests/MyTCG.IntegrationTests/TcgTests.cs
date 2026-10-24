@@ -142,6 +142,32 @@ public sealed class TcgTests(ApiFixture fixture) : IClassFixture<ApiFixture>
     }
 
     [Fact]
+    public async Task UnlimitedBoostersCanExceedQuotaAndLimitCanBeReenabled()
+    {
+        using var c = await Player();
+        var t = await Create(c);
+        await Card(c, t);
+        var user = (await c.GetFromJsonAsync<UserDto>("/api/users/me"))!.Id;
+        await using var scope = fixture.App.Services.CreateAsyncScope();
+        var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+        var settings = new BoosterOptions { DailyLimitEnabled = false };
+        var service = new BoosterOpeningService(db, Options.Create(settings), TimeProvider.System);
+        var key = Guid.NewGuid().ToString();
+        var first = await service.Open(user, t.Id, key);
+        for (var i = 0; i < 4; i++)
+            await service.Open(user, t.Id, Guid.NewGuid().ToString());
+        Assert.True((await service.BoosterStatus(user, t.Id)).IsUnlimited);
+        Assert.Equal(first.Id, (await service.Open(user, t.Id, key)).Id);
+        Assert.Equal(25, (await c.GetFromJsonAsync<CollectionProgressDto>(P(t, "/collection/progress")))!.Copies);
+        settings.DailyLimitEnabled = true;
+        var status = await service.BoosterStatus(user, t.Id);
+        Assert.False(status.IsUnlimited);
+        Assert.Equal(0, status.Remaining);
+        await Assert.ThrowsAsync<TcgException>(() => service.Open(user, t.Id, Guid.NewGuid().ToString()));
+        Assert.Equal(first.Id, (await service.Open(user, t.Id, key)).Id);
+    }
+
+    [Fact]
     public async Task EmptyCatalogueConsumesNothing()
     {
         using var c = await Player();

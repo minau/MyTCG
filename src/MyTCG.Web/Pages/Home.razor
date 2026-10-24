@@ -1,0 +1,88 @@
+@page "/"
+@page "/login"
+@page "/register"
+@page "/dashboard"
+@implements IDisposable
+@inject AuthClient Auth
+@inject NavigationManager Nav
+<PageTitle>MyTCG — Votre prochain univers</PageTitle>
+<main class="shell">
+    <header><a class="brand" href="/">✦ <span>MyTCG</span></a><span class="badge">PREMIÈRE ÉDITION</span></header>
+    @if (loading) { <section class="panel"><h1>Retrouvons votre univers…</h1><p role="status">Chargement de la session</p></section> }
+    else if (Auth.User is { } user)
+    {
+        <section class="intro"><p class="eyebrow">VOTRE ESPACE DE JEU</p><h1>Bienvenue, <em>@user.Username</em>.</h1><p>Chaque grande aventure commence par une première carte.</p></section>
+        <section class="tiles" aria-label="Fonctionnalités à venir">
+            @foreach (var tile in tiles) { <article class="tile"><span class="symbol">@tile.Icon</span><span class="coming">À VENIR</span><h2>@tile.Title</h2><p>@tile.Text</p></article> }
+        </section>
+        <section class="panel account"><h2>Mon compte</h2><EditForm Model="profile" OnValidSubmit="Update"><DataAnnotationsValidator /><ValidationSummary />
+            <label>Username<InputText @bind-Value="profile.Username" autocomplete="username" /></label>
+            <label>Email<InputText @bind-Value="profile.Email" type="email" autocomplete="email" /></label>
+            <button disabled="@busy">Enregistrer</button>
+        </EditForm><button class="secondary" disabled="@busy" @onclick="Logout">Déconnexion</button></section>
+    }
+    else
+    {
+        <div class="auth-layout"><section class="intro"><p class="eyebrow">CRÉEZ. COLLECTIONNEZ. AFFRONTEZ-VOUS.</p><h1>Votre cercle.<br />Vos cartes.<br /><em>Votre univers.</em></h1><p>Un espace pour imaginer votre prochain jeu de cartes entre amis.</p><div class="card-art" aria-hidden="true"><div>✦<small>MYTCG · UNE NOUVELLE AVENTURE</small></div></div></section>
+        <section class="panel"><p class="eyebrow">L’AVENTURE COMMENCE ICI</p><h2>@(register ? "Créer mon compte" : "Ravi de vous retrouver")</h2><p>@(register ? "Choisissez le nom qui vous représentera." : "Connectez-vous à votre espace MyTCG.")</p>
+            <EditForm Model="form" OnValidSubmit="Submit" @key="register"><DataAnnotationsValidator /><ValidationSummary />
+                <label>@(register ? "Username" : "Email ou username")<InputText @bind-Value="form.Login" autocomplete="username" /></label>
+                @if (register) { <label>Email<InputText @bind-Value="form.Email" type="email" autocomplete="email" /></label> }
+                <label>Mot de passe<InputText @bind-Value="form.Password" type="password" autocomplete="@(register ? "new-password" : "current-password")" /></label>
+                @if (register) { <p class="hint">12 caractères minimum, majuscule, minuscule, chiffre et caractère spécial.</p><label>Confirmer le mot de passe<InputText @bind-Value="form.ConfirmPassword" type="password" autocomplete="new-password" /></label> }
+                <button type="submit" disabled="@busy">@(busy ? "Veuillez patienter…" : register ? "Créer mon compte" : "Connexion") <span>→</span></button>
+            </EditForm>
+            <p class="switch">@(register ? "Déjà membre ?" : "Pas encore de compte ?") <a href="@(register ? "/login" : "/register")">@(register ? "Se connecter" : "Créer un compte")</a></p>
+        </section></div>
+    }
+    @if (!string.IsNullOrEmpty(error)) { <p class="notice error" role="alert">@error</p> }
+    @if (!string.IsNullOrEmpty(message)) { <p class="notice" role="status">@message</p> }
+    @if (retry) { <button class="secondary" @onclick="Bootstrap">Réessayer la connexion</button> }
+    <footer>MYTCG <span>Le début d’une nouvelle collection.</span></footer>
+</main>
+@code {
+    private bool loading = true, busy, retry;
+    private bool register => new Uri(Nav.Uri).AbsolutePath == "/register";
+    private string? error, message;
+    private FormModel form = new();
+    private ProfileModel profile = new();
+    private readonly (string Icon, string Title, string Text)[] tiles = [("◇", "Ma collection", "Vos futures cartes, réunies au même endroit."), ("▱", "Mes decks", "Imaginez vos prochaines stratégies."), ("⚔", "Jouer", "Vos prochains défis entre amis."), ("♧", "Mes groupes", "Votre communauté, votre univers.")];
+    protected override async Task OnInitializedAsync() { Auth.Changed += Changed; Nav.LocationChanged += Navigated; await Bootstrap(); }
+    protected override void OnParametersSet() { if (!loading) Redirect(); }
+    private async Task Bootstrap() {
+        loading = true; error = null; retry = false;
+        try { await Auth.Initialize(); if (Auth.User is { } u) profile = new() { Username = u.Username, Email = u.Email }; Redirect(); }
+        catch (Exception ex) when (ex is ClientException or HttpRequestException) { error = ex.Message; retry = true; }
+        finally { loading = false; }
+    }
+    private void Redirect() {
+        var path = new Uri(Nav.Uri).AbsolutePath;
+        if (Auth.User is not null && path != "/dashboard") Nav.NavigateTo("/dashboard", replace: true);
+        else if (Auth.User is null && path is not ("/login" or "/register")) Nav.NavigateTo("/login", replace: true);
+    }
+    private void Changed() => _ = InvokeAsync(StateHasChanged);
+    private async Task Submit() {
+        busy = true; error = message = null;
+        try {
+            if (register) { await Auth.Register(new(form.Login, form.Email, form.Password, form.ConfirmPassword)); form = new(); message = "Compte créé. Vous pouvez vous connecter."; Nav.NavigateTo("/login"); }
+            else { await Auth.Login(new(form.Login, form.Password)); profile = new() { Username = Auth.User!.Username, Email = Auth.User.Email }; form = new(); Redirect(); }
+        } catch (ClientException ex) { error = ex.Message; } finally { busy = false; }
+    }
+    private async Task Logout() { busy = true; error = message = null; try { await Auth.Logout(); Redirect(); } catch (ClientException ex) { error = ex.Message; } finally { busy = false; } }
+    private async Task Update() { busy = true; error = message = null; try { await Auth.UpdateMe(new(profile.Username, profile.Email)); message = "Compte mis à jour."; } catch (ClientException ex) { error = ex.Message; } finally { busy = false; } }
+    private void Navigated(object? sender, LocationChangedEventArgs args) {
+        form = new(); error = null;
+        _ = InvokeAsync(() => { if (!loading) Redirect(); StateHasChanged(); });
+    }
+    public void Dispose() { Auth.Changed -= Changed; Nav.LocationChanged -= Navigated; }
+    private sealed class FormModel {
+        [Required(ErrorMessage = "Saisissez votre identifiant.")] public string Login { get; set; } = "";
+        public string Email { get; set; } = "";
+        [Required(ErrorMessage = "Saisissez votre mot de passe.")] public string Password { get; set; } = "";
+        public string ConfirmPassword { get; set; } = "";
+    }
+    private sealed class ProfileModel {
+        [Required, RegularExpression(@"^[a-zA-Z0-9_]{3,32}$")] public string Username { get; set; } = "";
+        [Required, EmailAddress] public string Email { get; set; } = "";
+    }
+}

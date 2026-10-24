@@ -1,0 +1,16 @@
+{
+  "solution": {
+    "path": "MyTCG.sln",
+    "projects": [
+      "src/MyTCG.Api/MyTCG.Api.csproj",
+      "src/MyTCG.Application/MyTCG.Application.csproj",
+      "src/MyTCG.Client/MyTCG.Client.csproj",
+      "src/MyTCG.Contracts/MyTCG.Contracts.csproj",
+      "src/MyTCG.Domain/MyTCG.Domain.csproj",
+      "src/MyTCG.Infrastructure/MyTCG.Infrastructure.csproj",
+      "src/MyTCG.Web/MyTCG.Web.csproj",
+      "tests/MyTCG.IntegrationTests/MyTCG.IntegrationTests.csproj",
+      "tests/MyTCG.UnitTests/MyTCG.UnitTests.csproj"
+    ]
+  }
+}

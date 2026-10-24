@@ -1,0 +1,10 @@
+using Microsoft.AspNetCore.Components.Web;
+using Microsoft.AspNetCore.Components.WebAssembly.Hosting;
+using MyTCG.Client;
+using MyTCG.Web;
+var builder = WebAssemblyHostBuilder.CreateDefault(args);
+builder.RootComponents.Add<App>("#app"); builder.RootComponents.Add<HeadOutlet>("head::after");
+builder.Services.AddScoped<ISessionStorage, CookieSessionStorage>();
+builder.Services.AddScoped(_ => new HttpClient(new CookieHandler()) { BaseAddress = new Uri(builder.Configuration["ApiBaseUrl"] ?? builder.HostEnvironment.BaseAddress), Timeout = TimeSpan.FromSeconds(20) });
+builder.Services.AddScoped<AuthClient>();
+await builder.Build().RunAsync();

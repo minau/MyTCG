@@ -1,0 +1,13 @@
+{
+  "version": 1,
+  "dependencies": {
+    "net10.0": {
+      "mytcg.contracts": {
+        "type": "Project"
+      },
+      "mytcg.domain": {
+        "type": "Project"
+      }
+    }
+  }
+}

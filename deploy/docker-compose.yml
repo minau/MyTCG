@@ -1,0 +1,66 @@
+name: mytcg
+x-api-env: &api-env
+  ASPNETCORE_ENVIRONMENT: Production
+  ConnectionStrings__Database: "Host=database;Database=${POSTGRES_DB:-mytcg};Username=${POSTGRES_USER:-mytcg};Password=${POSTGRES_PASSWORD:?Définir POSTGRES_PASSWORD}"
+  Jwt__Key: "${JWT_KEY:?Définir JWT_KEY (32 octets minimum)}"
+  Cors__Origins__0: "https://${WEB_DOMAIN:-mytcg.example.com}"
+services:
+  database:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-mytcg}
+      POSTGRES_USER: ${POSTGRES_USER:-mytcg}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Définir POSTGRES_PASSWORD}
+    volumes: ["postgres_data:/var/lib/postgresql/data"]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
+      interval: 5s
+      timeout: 5s
+      retries: 15
+    restart: unless-stopped
+    networks: [private]
+  migrate:
+    image: mytcg-api:local
+    build: { context: .., dockerfile: deploy/Dockerfile.api }
+    command: ["--migrate"]
+    environment: *api-env
+    depends_on:
+      database: { condition: service_healthy }
+    restart: "no"
+    networks: [private]
+  api:
+    image: mytcg-api:local
+    build: { context: .., dockerfile: deploy/Dockerfile.api }
+    environment: *api-env
+    expose: ["8080"]
+    depends_on:
+      migrate: { condition: service_completed_successfully }
+    restart: unless-stopped
+    networks: [private]
+  web:
+    build: { context: .., dockerfile: deploy/Dockerfile.web }
+    restart: unless-stopped
+    networks: [private]
+  reverse-proxy:
+    image: caddy:2-alpine
+    ports: ["80:80", "443:443", "443:443/udp"]
+    environment:
+      WEB_DOMAIN: ${WEB_DOMAIN:-mytcg.example.com}
+      API_DOMAIN: ${API_DOMAIN:-api.mytcg.example.com}
+      ACME_EMAIL: ${ACME_EMAIL:-admin@example.com}
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      api: { condition: service_healthy }
+      web: { condition: service_started }
+    restart: unless-stopped
+    networks: [private, edge]
+networks:
+  private: { internal: true }
+  edge: {}
+volumes:
+  postgres_data:
+  caddy_data:
+  caddy_config:

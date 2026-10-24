@@ -6,3 +6,6 @@
 !.env.example
 **/appsettings.Local.json
 **/TestResults
+work
+**/media
+**/keys

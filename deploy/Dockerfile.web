@@ -1,10 +1,13 @@
+# syntax=docker/dockerfile:1
 FROM mcr.microsoft.com/dotnet/sdk:10.0.402 AS build
 WORKDIR /source
 COPY global.json Directory.Build.props ./
 COPY src/MyTCG.Contracts/ src/MyTCG.Contracts/
 COPY src/MyTCG.Client/ src/MyTCG.Client/
 COPY src/MyTCG.Web/ src/MyTCG.Web/
-RUN dotnet publish src/MyTCG.Web/MyTCG.Web.csproj -c Release -p:RestoreLockedMode=true -o /app --nologo
+RUN --mount=type=secret,id=build_ca \
+    if [ -f /run/secrets/build_ca ]; then export SSL_CERT_FILE=/run/secrets/build_ca; fi; \
+    dotnet publish src/MyTCG.Web/MyTCG.Web.csproj -c Release -p:RestoreLockedMode=true -o /app --nologo
 FROM caddy:2-alpine
 COPY deploy/Caddyfile.web /etc/caddy/Caddyfile
 COPY --from=build /app/wwwroot /srv

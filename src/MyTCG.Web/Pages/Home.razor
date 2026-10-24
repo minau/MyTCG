@@ -12,9 +12,7 @@
     else if (Auth.User is { } user)
     {
         <section class="intro"><p class="eyebrow">VOTRE ESPACE DE JEU</p><h1>Bienvenue, <em>@user.Username</em>.</h1><p>Chaque grande aventure commence par une première carte.</p></section>
-        <section class="tiles" aria-label="Fonctionnalités à venir">
-            @foreach (var tile in tiles) { <article class="tile"><span class="symbol">@tile.Icon</span><span class="coming">À VENIR</span><h2>@tile.Title</h2><p>@tile.Text</p></article> }
-        </section>
+        <MyTCG.Web.Components.TcgWorkspace />
         <section class="panel account"><h2>Mon compte</h2><EditForm Model="profile" OnValidSubmit="Update"><DataAnnotationsValidator /><ValidationSummary />
             <label>Username<InputText @bind-Value="profile.Username" autocomplete="username" /></label>
             <label>Email<InputText @bind-Value="profile.Email" type="email" autocomplete="email" /></label>
@@ -46,7 +44,7 @@
     private string? error, message;
     private FormModel form = new();
     private ProfileModel profile = new();
-    private readonly (string Icon, string Title, string Text)[] tiles = [("◇", "Ma collection", "Vos futures cartes, réunies au même endroit."), ("▱", "Mes decks", "Imaginez vos prochaines stratégies."), ("⚔", "Jouer", "Vos prochains défis entre amis."), ("♧", "Mes groupes", "Votre communauté, votre univers.")];
+
     protected override async Task OnInitializedAsync() { Auth.Changed += Changed; Nav.LocationChanged += Navigated; await Bootstrap(); }
     protected override void OnParametersSet() { if (!loading) Redirect(); }
     private async Task Bootstrap() {

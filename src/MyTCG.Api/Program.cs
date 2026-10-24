@@ -16,7 +16,7 @@ using MyTCG.Infrastructure;
 var builder = WebApplication.CreateBuilder(args);
 builder.Logging.ClearProviders(); builder.Logging.AddJsonConsole();
 builder.Services.AddInfrastructure(builder.Configuration);
-builder.Services.AddCors(o => o.AddDefaultPolicy(p => p.WithOrigins(builder.Configuration.GetSection("Cors:Origins").Get<string[]>() ?? []).WithMethods("GET", "POST", "PUT").WithHeaders("Content-Type", "Authorization", "X-MyTCG-Client").AllowCredentials()));
+builder.Services.AddCors(o => o.AddDefaultPolicy(p => p.WithOrigins(builder.Configuration.GetSection("Cors:Origins").Get<string[]>() ?? []).WithMethods("GET", "POST", "PUT", "PATCH", "DELETE").WithHeaders("Content-Type", "Authorization", "X-MyTCG-Client").AllowCredentials()));
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme).AddJwtBearer(o => {
     var jwt = builder.Configuration.GetSection("Jwt").Get<JwtSettings>()!;
     o.MapInboundClaims = false;
@@ -42,7 +42,7 @@ builder.Services.AddOpenApi(options => options.AddDocumentTransformer((document,
     document.Components ??= new();
     document.Components.SecuritySchemes ??= new Dictionary<string, IOpenApiSecurityScheme>();
     document.Components.SecuritySchemes["Bearer"] = new OpenApiSecurityScheme { Type = SecuritySchemeType.Http, Scheme = "bearer", BearerFormat = "JWT" };
-    foreach (var path in document.Paths.Where(p => p.Key is "/api/users/me" or "/api/auth/logout"))
+    foreach (var path in document.Paths.Where(p => p.Key is "/api/users/me" or "/api/auth/logout" || p.Key.StartsWith("/api/tcgs", StringComparison.Ordinal)))
         foreach (var operation in path.Value.Operations!.Values)
             operation.Security = [new OpenApiSecurityRequirement { [new OpenApiSecuritySchemeReference("Bearer", document)] = [] }];
     return Task.CompletedTask;
@@ -72,13 +72,17 @@ app.Use(async (context, next) => {
         context.Response.StatusCode = 400;
         await context.Response.WriteAsJsonAsync(new ApiError("validation", ["Requête JSON invalide."]));
     }
+    catch (TcgException ex) {
+        context.Response.StatusCode = ex.Status;
+        await context.Response.WriteAsJsonAsync(new ApiError(ex.Code, [ex.Message]));
+    }
     catch (AccountException ex) {
         context.Response.StatusCode = ex.Code == "unauthorized" ? 401 : 400;
         await context.Response.WriteAsJsonAsync(new ApiError(ex.Code, ex.Errors));
     }
     catch (DbUpdateException ex) when (ex.InnerException is Npgsql.PostgresException { SqlState: "23505" }) {
         context.Response.StatusCode = 400;
-        await context.Response.WriteAsJsonAsync(new ApiError("duplicate", ["Username ou email déjà utilisé."]));
+        await context.Response.WriteAsJsonAsync(new ApiError("duplicate", ["Valeur unique déjà utilisée (compte, adhésion, numéro ou requête)."]));
     }
     catch (Exception ex) {
         // Do not log exception objects: database exception details can contain account data.
@@ -132,6 +136,7 @@ app.MapGet("/api/users/me", async (IAccountService accounts, HttpContext ctx) =>
 app.MapPut("/api/users/me", async (UpdateUserRequest r, IAccountService accounts, HttpContext ctx) => {
     Validate(r); return await accounts.UpdateUser(UserId(ctx), r);
 }).RequireAuthorization();
+app.MapTcgEndpoints();
 app.Run();
 
 static Guid UserId(HttpContext ctx) => Guid.Parse(ctx.User.FindFirstValue("sub")!);

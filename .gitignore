@@ -10,3 +10,7 @@ TestResults/
 *.user
 *.pfx
 *.keystore
+
+work/
+media/
+keys/

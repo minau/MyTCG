@@ -2,6 +2,8 @@ name: mytcg
 x-api-env: &api-env
   ASPNETCORE_ENVIRONMENT: Production
   ConnectionStrings__Database: "Host=database;Database=${POSTGRES_DB:-mytcg};Username=${POSTGRES_USER:-mytcg};Password=${POSTGRES_PASSWORD:?Définir POSTGRES_PASSWORD}"
+  Media__Root: /app/media
+  DataProtection__KeyPath: /app/keys
   Jwt__Key: "${JWT_KEY:?Définir JWT_KEY (32 octets minimum)}"
   Cors__Origins__0: "https://${WEB_DOMAIN:-mytcg.example.com}"
 services:
@@ -32,6 +34,7 @@ services:
     image: mytcg-api:local
     build: { context: .., dockerfile: deploy/Dockerfile.api }
     environment: *api-env
+    volumes: ["media_data:/app/media", "protection_keys:/app/keys"]
     expose: ["8080"]
     depends_on:
       migrate: { condition: service_completed_successfully }
@@ -62,5 +65,7 @@ networks:
   edge: {}
 volumes:
   postgres_data:
+  media_data:
+  protection_keys:
   caddy_data:
   caddy_config:

@@ -26,28 +26,27 @@ public sealed class MainPage : ContentPage
         base.OnAppearing();
         if (initialized) return;
         initialized = true;
-        content.Add(Title("✦ MyTCG")); content.Add(new ActivityIndicator { IsRunning = true, Color = Ink });
+        content.Add(HeadingLabel("✦ MyTCG")); content.Add(new ActivityIndicator { IsRunning = true, Color = Ink });
         try { await auth.Initialize(); }
         catch (Exception ex) when (ex is ClientException or System.Security.Cryptography.CryptographicException) { error.Text = ex is ClientException ? ex.Message : "Stockage sécurisé indisponible. Réessayez."; }
         Render();
     }
     private void Render()
     {
-        content.Clear(); content.Add(Title("✦ MyTCG"));
+        content.Clear(); content.Add(HeadingLabel("✦ MyTCG"));
         if (auth.User is { } u)
         {
-            content.Add(Title($"Bienvenue, {u.Username}.", 28));
+            content.Add(HeadingLabel($"Bienvenue, {u.Username}.", 28));
             content.Add(Text("Votre cercle. Vos cartes. Votre univers."));
-            foreach (var name in new[] { "◇ Ma collection", "▱ Mes decks", "⚔ Jouer", "♧ Mes groupes" })
-                content.Add(new Border { BackgroundColor = Colors.White, Stroke = Line, StrokeShape = new Microsoft.Maui.Controls.Shapes.RoundRectangle { CornerRadius = 16 }, Padding = 22, Content = new VerticalStackLayout { Children = { Title(name, 20), Text("À venir") } } });
+            content.Add(ActionButton("Mes univers TCG", async () => { await Navigation.PushModalAsync(new NavigationPage(new TcgPage(auth))); }));
             var username = Field("Username", u.Username); var email = Field("Email", u.Email); email.Keyboard = Keyboard.Email;
-            content.Add(Title("Mon compte", 22)); content.Add(username); content.Add(email);
+            content.Add(HeadingLabel("Mon compte", 22)); content.Add(username); content.Add(email);
             content.Add(ActionButton("Enregistrer", async () => { await auth.UpdateMe(new(username.Text ?? "", email.Text ?? "")); Render(); }));
             content.Add(ActionButton("Déconnexion", async () => { await auth.Logout(); Render(); }));
         }
         else
         {
-            content.Add(Title(registering ? "Créer mon compte" : "Ravi de vous retrouver", 28));
+            content.Add(HeadingLabel(registering ? "Créer mon compte" : "Ravi de vous retrouver", 28));
             content.Add(Text("Votre prochain univers commence ici."));
             var login = Field(registering ? "Username" : "Email ou username"); var email = Field("Email"); email.Keyboard = Keyboard.Email;
             var password = Field("Mot de passe"); password.IsPassword = true;
@@ -89,6 +88,6 @@ public sealed class MainPage : ContentPage
         }; return b;
     }
     private static Entry Field(string placeholder, string? value = "") => new() { Placeholder = placeholder, Text = value, TextColor = Ink, PlaceholderColor = Muted, BackgroundColor = Colors.White, MaxLength = 254 };
-    private static Label Title(string value, int size = 34) => new() { Text = value, FontSize = size, FontAttributes = FontAttributes.Bold, TextColor = Ink };
+    private static Label HeadingLabel(string value, int size = 34) => new() { Text = value, FontSize = size, FontAttributes = FontAttributes.Bold, TextColor = Ink };
     private static Label Text(string value) => new() { Text = value, FontSize = 14, TextColor = Muted };
 }

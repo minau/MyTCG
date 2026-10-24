@@ -62,3 +62,11 @@ Les secrets de développement sont générés dans `.env` ignoré et protégé e
 - Tests ajoutés : 12 créations concurrentes (numéros uniques et croissants par set), numéro conservé à la modification/archivage, refus d’un numéro ou d’une URL externe dans la requête, image existante uploadée dans le même set, migration de données héritées et aller-retour de migration.
 - Restauration verrouillée depuis le cache local, avec `-p:NuGetAudit=false` faute d’accès réseau dans le terminal ; l’audit de vulnérabilités n’a pas été exécuté. Les sources de packages et versions n’ont pas été modifiées.
 - Le script smoke navigateur a été adapté et sa syntaxe JavaScript vérifiée ; le parcours navigateur et la compilation native MAUI n’ont pas été exécutés pour cette modification.
+## Coûts d’attaque et de retrait — 24 octobre 2026
+
+- Compilation API/web réussie sans avertissement ni erreur.
+- **32 tests unitaires et 48 tests d’intégration PostgreSQL réussis**, aucun échec ni test ignoré.
+- Vérifications : coûts indépendants, bornes inclusives 0 et 10, rejet de -1 et 11 à la création/modification, lecture des coûts dans les boosters, conservation des données lors de la migration et de son aller-retour.
+- Ancien coût repris comme coût d’attaque, limité à 10 ; coût de retrait initialisé à 0. Les anciens coûts 11 et 12 sont couverts par le test de migration.
+- Migration EF Core cohérente avec le modèle ; script smoke adapté aux deux champs et syntaxe JavaScript vérifiée.
+- Même limite de vérification que précédemment : audit NuGet désactivé lors des commandes locales, parcours navigateur et compilation native MAUI non exécutés.

@@ -66,7 +66,8 @@ public sealed class Card
     public int CardNumber { get; set; }
     public CardType CardType { get; set; }
     public Rarity Rarity { get; set; }
-    public int ActionCost { get; set; }
+    public int AttackCost { get; set; }
+    public int RetreatCost { get; set; }
     public int? Attack { get; set; }
     public int? Defense { get; set; }
     public double DropWeight { get; set; }

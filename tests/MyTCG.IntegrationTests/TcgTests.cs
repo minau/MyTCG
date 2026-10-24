@@ -40,7 +40,7 @@ public sealed class TcgTests(ApiFixture fixture) : IClassFixture<ApiFixture>
 
     private static async Task<CardDto> Card(HttpClient c, TcgDto t, bool active = true)
     {
-        var r = await c.PostAsJsonAsync(P(t, "/cards"), new CardRequest("Hero", "Description", 0, 0, 3, 4, 5, 100, null, active));
+        var r = await c.PostAsJsonAsync(P(t, "/cards"), new CardRequest("Hero", "Description", 0, 0, 3, 0, 4, 5, 100, null, active));
         r.EnsureSuccessStatusCode();
         return (await r.Content.ReadFromJsonAsync<CardDto>())!;
     }
@@ -94,12 +94,55 @@ public sealed class TcgTests(ApiFixture fixture) : IClassFixture<ApiFixture>
         var b = await Create(owner);
         await member.PostAsync(P(a, "/join"), null);
         var card = await Card(owner, a);
-        var r = new CardRequest("Hero", "", 0, 0, 3, 1, 1, 1, null);
+        var r = new CardRequest("Hero", "", 0, 0, 3, 0, 1, 1, 1, null);
         Assert.Equal(HttpStatusCode.Forbidden, (await member.PostAsJsonAsync(P(a, "/cards"), r)).StatusCode);
-        Assert.Equal(HttpStatusCode.BadRequest, (await owner.PostAsJsonAsync(P(a, "/cards"), r with { ActionCost = 13 })).StatusCode);
+        Assert.Equal(HttpStatusCode.BadRequest, (await owner.PostAsJsonAsync(P(a, "/cards"), r with { AttackCost = 11 })).StatusCode);
         Assert.Equal(HttpStatusCode.NotFound, (await owner.PutAsJsonAsync(P(b, $"/cards/{card.Id}"), r)).StatusCode);
         Assert.Equal(HttpStatusCode.OK, (await owner.PostAsJsonAsync(P(a, "/cards"), r)).StatusCode);
         Assert.Equal(HttpStatusCode.Forbidden, (await member.GetAsync(P(b, "/collection"))).StatusCode);
+    }
+
+    [Theory]
+    [InlineData(0, 0)]
+    [InlineData(0, 10)]
+    [InlineData(10, 0)]
+    [InlineData(10, 10)]
+    public async Task AttackAndRetreatCostsAreIndependentAndPersisted(int attackCost, int retreatCost)
+    {
+        using var c = await Player();
+        var t = await Create(c);
+        var request = new CardRequest("Costs", "", 0, 0, attackCost, retreatCost, 0, 0, 100, null);
+        var response = await c.PostAsJsonAsync(P(t, "/cards"), request);
+        response.EnsureSuccessStatusCode();
+        var card = (await response.Content.ReadFromJsonAsync<CardDto>())!;
+        Assert.Equal(attackCost, card.AttackCost);
+        Assert.Equal(retreatCost, card.RetreatCost);
+        var opening = await Open(c, t);
+        Assert.All(opening.Cards, x => { Assert.Equal(attackCost, x.AttackCost); Assert.Equal(retreatCost, x.RetreatCost); });
+        var updated = await c.PutAsJsonAsync(P(t, $"/cards/{card.Id}"), request with { AttackCost = retreatCost, RetreatCost = attackCost });
+        updated.EnsureSuccessStatusCode();
+        var persisted = Assert.Single((await c.GetFromJsonAsync<CardDto[]>(P(t, "/cards")))!);
+        Assert.Equal(retreatCost, persisted.AttackCost);
+        Assert.Equal(attackCost, persisted.RetreatCost);
+        Assert.Equal(card.CardNumber, persisted.CardNumber);
+    }
+
+    [Theory]
+    [InlineData(-1, 0)]
+    [InlineData(11, 0)]
+    [InlineData(0, -1)]
+    [InlineData(0, 11)]
+    public async Task BothCostsRejectOutOfRangeValuesOnCreateAndUpdate(int attackCost, int retreatCost)
+    {
+        using var c = await Player();
+        var t = await Create(c);
+        var card = await Card(c, t);
+        var invalid = new CardRequest("Costs", "", 0, 0, attackCost, retreatCost, 0, 0, 100, null);
+        Assert.Equal(HttpStatusCode.BadRequest, (await c.PostAsJsonAsync(P(t, "/cards"), invalid)).StatusCode);
+        Assert.Equal(HttpStatusCode.BadRequest, (await c.PutAsJsonAsync(P(t, $"/cards/{card.Id}"), invalid)).StatusCode);
+        var persisted = Assert.Single((await c.GetFromJsonAsync<CardDto[]>(P(t, "/cards")))!);
+        Assert.Equal(card.AttackCost, persisted.AttackCost);
+        Assert.Equal(card.RetreatCost, persisted.RetreatCost);
     }
 
     [Fact]
@@ -132,18 +175,23 @@ public sealed class TcgTests(ApiFixture fixture) : IClassFixture<ApiFixture>
             await db.Database.ExecuteSqlInterpolatedAsync($"""
                 INSERT INTO "Card" ("Id", "TcgId", "Name", "Description", "CardNumber", "CardType", "Rarity", "ActionCost", "DropWeight", "ImageUrl", "IsActive", "CreatedAt", "UpdatedAt")
                 VALUES ({first}, {a.Id}, 'Uploaded', '', '001', 1, 0, 1, 100, {imagePath}, true, {firstDate}, {firstDate}),
-                       ({Guid.NewGuid()}, {a.Id}, 'External', '', '010', 2, 0, 1, 100, 'https://example.com/image.png', true, {firstDate}, {firstDate}),
+                       ({Guid.NewGuid()}, {a.Id}, 'External', '', '010', 2, 0, 12, 100, 'https://example.com/image.png', true, {firstDate}, {firstDate}),
                        ({Guid.NewGuid()}, {b.Id}, 'Legacy first', '', 'alpha', 1, 0, 1, 100, NULL, true, {firstDate}, {firstDate}),
-                       ({Guid.NewGuid()}, {b.Id}, 'Legacy second', '', '2', 1, 0, 1, 100, NULL, true, {firstDate.AddHours(1)}, {firstDate});
+                       ({Guid.NewGuid()}, {b.Id}, 'Legacy second', '', '2', 1, 0, 11, 100, NULL, true, {firstDate.AddHours(1)}, {firstDate});
                 """);
             await migrator.MigrateAsync();
             var cards = await db.Set<Card>().AsNoTracking().OrderBy(x => x.CardNumber).ToListAsync();
             Assert.Equal(4, cards.Count);
+            Assert.Equal(1, cards.Single(x => x.Id == first).AttackCost);
+            Assert.Equal(10, cards.Single(x => x.Name == "External").AttackCost);
+            Assert.Equal(10, cards.Single(x => x.Name == "Legacy second").AttackCost);
+            Assert.All(cards, x => Assert.Equal(0, x.RetreatCost));
             Assert.Equal(imageId, cards.Single(x => x.Id == first).ImageId);
             Assert.Equal(1, cards.Single(x => x.Id == first).CardNumber);
             Assert.Equal(10, cards.Single(x => x.Name == "External").CardNumber);
             Assert.Null(cards.Single(x => x.Name == "External").ImageId);
             Assert.Equal(new[] { 1, 2 }, cards.Where(x => x.TcgId == b.Id).Select(x => x.CardNumber));
+            await db.Set<Card>().Where(x => x.Id == first).ExecuteUpdateAsync(s => s.SetProperty(x => x.AttackCost, 0).SetProperty(x => x.RetreatCost, 10));
             await migrator.MigrateAsync("20261024181820_MultiTcgV2");
             await migrator.MigrateAsync();
             Assert.Equal(imageId, (await db.Set<Card>().AsNoTracking().SingleAsync(x => x.Id == first)).ImageId);
@@ -163,7 +211,7 @@ public sealed class TcgTests(ApiFixture fixture) : IClassFixture<ApiFixture>
         var created = await Task.WhenAll(Enumerable.Range(0, 12).Select(_ => Card(c, t)));
         Assert.Equal(Enumerable.Range(1, 12), created.Select(x => x.CardNumber).Order());
         var first = created.Single(x => x.CardNumber == 1);
-        var request = new CardRequest("Renamed", "", 0, 0, 2, 1, 1, 100, null);
+        var request = new CardRequest("Renamed", "", 0, 0, 2, 0, 1, 1, 100, null);
         var update = await c.PutAsJsonAsync(P(t, $"/cards/{first.Id}"), request);
         update.EnsureSuccessStatusCode();
         Assert.Equal(1, (await update.Content.ReadFromJsonAsync<CardDto>())!.CardNumber);
@@ -177,7 +225,7 @@ public sealed class TcgTests(ApiFixture fixture) : IClassFixture<ApiFixture>
     {
         using var c = await Player();
         var t = await Create(c);
-        var request = new CardRequest("Hero", "", 0, 0, 3, 1, 1, 100, Guid.NewGuid());
+        var request = new CardRequest("Hero", "", 0, 0, 3, 0, 1, 1, 100, Guid.NewGuid());
         Assert.Equal(HttpStatusCode.BadRequest, (await c.PostAsJsonAsync(P(t, "/cards"), request)).StatusCode);
         using var bitmap = new SkiaSharp.SKBitmap(2, 2);
         bitmap.Erase(SkiaSharp.SKColors.Blue);
@@ -199,11 +247,11 @@ public sealed class TcgTests(ApiFixture fixture) : IClassFixture<ApiFixture>
         // Number and external URL are no longer writable contract fields.
         Assert.Equal(HttpStatusCode.BadRequest, (await c.PostAsJsonAsync(P(t, "/cards"), new {
             name = "Injected", description = "", cardNumber = 99, cardType = 0, rarity = 0,
-            actionCost = 1, attack = 0, defense = 0, dropWeight = 100
+            attackCost = 1, retreatCost = 0, attack = 0, defense = 0, dropWeight = 100
         })).StatusCode);
         Assert.Equal(HttpStatusCode.BadRequest, (await c.PostAsJsonAsync(P(t, "/cards"), new {
             name = "Injected", description = "", imageUrl = "https://example.com/image.png", cardType = 0,
-            rarity = 0, actionCost = 1, attack = 0, defense = 0, dropWeight = 100
+            rarity = 0, attackCost = 1, retreatCost = 0, attack = 0, defense = 0, dropWeight = 100
         })).StatusCode);
     }
 
@@ -214,7 +262,7 @@ public sealed class TcgTests(ApiFixture fixture) : IClassFixture<ApiFixture>
     {
         using var c = await Player();
         var t = await Create(c);
-        var request = new CardRequest("Carte", "Description", type, 0, 3, null, null, 100, null);
+        var request = new CardRequest("Carte", "Description", type, 0, 3, 0, null, null, 100, null);
         var created = await c.PostAsJsonAsync(P(t, "/cards"), request);
         created.EnsureSuccessStatusCode();
         var card = (await created.Content.ReadFromJsonAsync<CardDto>())!;

@@ -5,8 +5,8 @@ public sealed record TcgRequest([property: Required, StringLength(100, MinimumLe
 public sealed record TcgDto(Guid Id, string Name, string Description, string? CoverImage, int Visibility, int Members, bool IsAdmin);
 public sealed record JoinCodeRequest([property: Required, StringLength(128)] string Code);
 [System.Text.Json.Serialization.JsonUnmappedMemberHandling(System.Text.Json.Serialization.JsonUnmappedMemberHandling.Disallow)]
-public sealed record CardRequest(string Name, string Description, int CardType, int Rarity, int ActionCost, int? Attack, int? Defense, double DropWeight, Guid? ImageId, bool IsActive = true);
-public sealed record CardDto(Guid Id, Guid TcgId, string Name, string Description, int CardNumber, int CardType, int Rarity, int ActionCost, int? Attack, int? Defense, double DropWeight, Guid? ImageId, bool IsActive);
+public sealed record CardRequest(string Name, string Description, int CardType, int Rarity, int AttackCost, int RetreatCost, int? Attack, int? Defense, double DropWeight, Guid? ImageId, bool IsActive = true);
+public sealed record CardDto(Guid Id, Guid TcgId, string Name, string Description, int CardNumber, int CardType, int Rarity, int AttackCost, int RetreatCost, int? Attack, int? Defense, double DropWeight, Guid? ImageId, bool IsActive);
 public sealed record CollectionItem(CardDto Card, int Quantity);
 public sealed record CollectionProgressDto(int Discovered, int Copies, int Total);
 public sealed record BoosterStatusDto(int Remaining, int DailyLimit, DateTimeOffset ResetsAt, bool IsUnlimited = false);

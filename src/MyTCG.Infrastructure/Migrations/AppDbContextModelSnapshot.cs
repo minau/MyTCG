@@ -210,10 +210,10 @@ namespace MyTCG.Infrastructure.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uuid");
 
-                    b.Property<int>("ActionCost")
+                    b.Property<int?>("Attack")
                         .HasColumnType("integer");
 
-                    b.Property<int?>("Attack")
+                    b.Property<int>("AttackCost")
                         .HasColumnType("integer");
 
                     b.Property<int>("CardNumber")
@@ -248,6 +248,9 @@ namespace MyTCG.Infrastructure.Migrations
                     b.Property<int>("Rarity")
                         .HasColumnType("integer");
 
+                    b.Property<int>("RetreatCost")
+                        .HasColumnType("integer");
+
                     b.Property<Guid>("TcgId")
                         .HasColumnType("uuid");
 
@@ -261,7 +264,9 @@ namespace MyTCG.Infrastructure.Migrations
 
                     b.ToTable("Card", t =>
                         {
-                            t.HasCheckConstraint("CK_Card_Cost", "\"ActionCost\" BETWEEN 1 AND 12");
+                            t.HasCheckConstraint("CK_Card_AttackCost", "\"AttackCost\" BETWEEN 0 AND 10");
+
+                            t.HasCheckConstraint("CK_Card_RetreatCost", "\"RetreatCost\" BETWEEN 0 AND 10");
 
                             t.HasCheckConstraint("CK_Card_Stats", "(\"Attack\" IS NULL OR \"Attack\" >= 0) AND (\"Defense\" IS NULL OR \"Defense\" >= 0)");
                         });

@@ -1,8 +1,8 @@
 @using MyTCG.Contracts
 @inject MyTCG.Client.AuthClient Auth
 <article class="tcg-card rarity-@Card.Rarity @(Locked ? "locked" : "")" aria-label="@Card.Name">
- <div class="card-illustration">@if(image is not null){<img src="@image" alt="" loading="lazy" referrerpolicy="no-referrer" />}else{<span aria-hidden="true">✦</span>}<b class="card-cost">@Card.ActionCost</b></div>
- <div class="card-copy"><small>#@Card.CardNumber · @Rarities[Card.Rarity]</small><h3>@Card.Name</h3><p>@(Card.CardType switch { 0 => "Personnage", 1 => "Effet", 2 => "Équipement", _ => "Type inconnu" }) @if(Card.CardType==0){<span> · ⚔ @Card.Attack / ◇ @Card.Defense</span>}</p><p>@Card.Description</p>@if(Quantity is not null){<strong>@(Locked?"Non découverte":$"× {Quantity}")</strong>}@if(!Card.IsActive){<small>Archivée</small>}</div>
+ <div class="card-illustration">@if(image is not null){<img src="@image" alt="" loading="lazy" referrerpolicy="no-referrer" />}else{<span aria-hidden="true">✦</span>}</div>
+ <div class="card-copy"><small>#@Card.CardNumber · @Rarities[Card.Rarity]</small><h3>@Card.Name</h3><p>Coût d’attaque : <strong>@Card.AttackCost</strong><br />Coût de retrait : <strong>@Card.RetreatCost</strong></p><p>@(Card.CardType switch { 0 => "Personnage", 1 => "Effet", 2 => "Équipement", _ => "Type inconnu" }) @if(Card.CardType==0){<span> · ⚔ @Card.Attack / ◇ @Card.Defense</span>}</p><p>@Card.Description</p>@if(Quantity is not null){<strong>@(Locked?"Non découverte":$"× {Quantity}")</strong>}@if(!Card.IsActive){<small>Archivée</small>}</div>
 </article>
 @code {
  [Parameter,EditorRequired] public CardDto Card {get;set;}=null!;

@@ -22,7 +22,8 @@ internal static class TcgModelConfiguration
         b.Entity<Card>().HasOne<Tcg>().WithMany().HasForeignKey(x => x.TcgId);
         b.Entity<Card>().ToTable(t =>
         {
-            t.HasCheckConstraint("CK_Card_Cost", "\"ActionCost\" BETWEEN 1 AND 12");
+            t.HasCheckConstraint("CK_Card_AttackCost", "\"AttackCost\" BETWEEN 0 AND 10");
+            t.HasCheckConstraint("CK_Card_RetreatCost", "\"RetreatCost\" BETWEEN 0 AND 10");
             t.HasCheckConstraint("CK_Card_Stats", "(\"Attack\" IS NULL OR \"Attack\" >= 0) AND (\"Defense\" IS NULL OR \"Defense\" >= 0)");
         });
         b.Entity<UserCard>().HasKey(x => new { x.TcgId, x.UserId, x.CardId });
@@ -47,3 +48,4 @@ internal static class TcgModelConfiguration
         b.Entity<DeckCard>().ToTable(t => t.HasCheckConstraint("CK_DeckCard_Quantity", "\"Quantity\" > 0"));
     }
 }
+

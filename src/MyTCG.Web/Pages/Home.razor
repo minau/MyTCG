@@ -11,13 +11,13 @@
     @if (loading) { <section class="panel"><h1>Retrouvons votre univers…</h1><p role="status">Chargement de la session</p></section> }
     else if (Auth.User is { } user)
     {
-        <section class="intro"><p class="eyebrow">VOTRE ESPACE DE JEU</p><h1>Bienvenue, <em>@user.Username</em>.</h1><p>Chaque grande aventure commence par une première carte.</p></section>
-        <MyTCG.Web.Components.TcgWorkspace />
-        <section class="panel account"><h2>Mon compte</h2><EditForm Model="profile" OnValidSubmit="Update"><DataAnnotationsValidator /><ValidationSummary />
+        <MyTCG.Web.Components.TcgWorkspace>
+        <section class="panel account"><h2>Mon Compte</h2><EditForm Model="profile" OnValidSubmit="Update"><DataAnnotationsValidator /><ValidationSummary />
             <label>Username<InputText @bind-Value="profile.Username" autocomplete="username" /></label>
             <label>Email<InputText @bind-Value="profile.Email" type="email" autocomplete="email" /></label>
             <button disabled="@busy">Enregistrer</button>
         </EditForm><button class="secondary" disabled="@busy" @onclick="Logout">Déconnexion</button></section>
+        </MyTCG.Web.Components.TcgWorkspace>
     }
     else
     {

@@ -23,6 +23,7 @@ public sealed class ApiFixture : IAsyncLifetime
             b.UseEnvironment("Development");
             b.ConfigureAppConfiguration((_, c) => c.AddInMemoryCollection(new Dictionary<string,string?> {
                 ["ConnectionStrings:Database"] = connection,
+                ["Boosters:DailyLimitEnabled"] = "true",
                 ["Jwt:Key"] = "IntegrationTestsOnly-NotForProduction-1234567890!",
                 ["Cors:Origins:0"] = "https://web.mytcg.test", ["Auth:PermitLimit"] = "1000"
             }));

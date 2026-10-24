@@ -43,7 +43,7 @@ public sealed class NativeCardView : Border
                 },
                 new Label
                 {
-                    Text = $"{new[] { "Commune", "Peu commune", "Rare", "Épique", "Légendaire" }[card.Rarity]} · Coût {card.ActionCost} · {(card.CardType == 0 ? $"⚔ {card.Attack} / ◇ {card.Defense}" : "Action")}"},
+                    Text = $"{new[] { "Commune", "Peu commune", "Rare", "Épique", "Légendaire" }[card.Rarity]} · Coût {card.ActionCost} · {(card.CardType == 0 ? $"⚔ {card.Attack} / ◇ {card.Defense}" : card.CardType == 1 ? "Effet" : card.CardType == 2 ? "Équipement" : "Type inconnu")}"},
                 new Label
                 {
                     Text = card.Description

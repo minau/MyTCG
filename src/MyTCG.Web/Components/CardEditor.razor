@@ -4,7 +4,7 @@
 @inject AuthClient Auth
 <div class="editor-layout"><section class="panel"><h2>@(Card is null?"Nouvelle carte":"Modifier la carte")</h2>
 <label>Nom<input @bind="name" maxlength="150" /></label><label>Numéro<input @bind="number" maxlength="40" /></label><label>Description<textarea @bind="description" maxlength="8000"></textarea></label>
-<label>Type<select @bind="type"><option value="0">Personnage</option><option value="1">Action</option></select></label>
+<label>Type<select @bind="type"><option value="0">Personnage</option><option value="1">Effet</option><option value="2">Équipement</option></select></label>
 <label>Rareté<select @bind="rarity">@for(var i=0;i<5;i++){<option value="@i">@rarities[i]</option>}</select></label>
 <label>Coût<input type="number" min="1" max="12" @bind="cost" /></label>
 @if(type==0){<label>Attaque<input type="number" min="0" @bind="attack" /></label><label>Défense<input type="number" min="0" @bind="defense" /></label>}

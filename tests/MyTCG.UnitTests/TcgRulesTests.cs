@@ -20,8 +20,14 @@ public sealed class TcgRulesTests
     public void NegativeStats(int a, int d) => Assert.Throws<TcgException>(() => TcgService.ValidateCard(Valid with { Attack = a, Defense = d }));
     [Fact]
     public void CharacterNeedsStats() => Assert.Throws<TcgException>(() => TcgService.ValidateCard(Valid with { Attack = null }));
-    [Fact]
-    public void ActionCanOmitStats() => TcgService.ValidateCard(Valid with { CardType = 1, Attack = null, Defense = null });
+    [Theory]
+    [InlineData(1)]
+    [InlineData(2)]
+    public void NonCharacterTypesCanOmitStats(int type) => TcgService.ValidateCard(Valid with { CardType = type, Attack = null, Defense = null });
+    [Theory]
+    [InlineData(-1)]
+    [InlineData(3)]
+    public void UnknownCardTypesAreRejected(int type) => Assert.Throws<TcgException>(() => TcgService.ValidateCard(Valid with { CardType = type }));
     [Theory]
     [InlineData(0)]
     [InlineData(-5)]

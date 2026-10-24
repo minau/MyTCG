@@ -7,7 +7,7 @@ public sealed class LocalMediaStorage(IConfiguration config) : IMediaStorage
 {
     private string Root => Path.GetFullPath(config["Media:Root"] ?? "media");
 
-    public async Task<string> Save(Guid tcg, Stream stream, string contentType, CancellationToken ct)
+    public async Task<Guid> Save(Guid tcg, Stream stream, string contentType, CancellationToken ct)
     {
         if (contentType is not ("image/jpeg" or "image/png" or "image/webp"))
             throw new TcgException(400, "image_format", "Formats acceptés : JPEG, PNG, WebP.");
@@ -44,11 +44,12 @@ public sealed class LocalMediaStorage(IConfiguration config) : IMediaStorage
         using var encoded = image.Encode(SKEncodedImageFormat.Png, 100);
         var directory = Path.Combine(Root, tcg.ToString());
         Directory.CreateDirectory(directory);
-        var name = Guid.NewGuid().ToString("N") + ".png";
+        var imageId = Guid.NewGuid();
+        var name = imageId.ToString("N") + ".png";
         await using var output = File.Create(Path.Combine(directory, name));
         encoded.SaveTo(output);
         await output.FlushAsync(ct);
-        return $"/api/tcgs/{tcg}/media/{name}";
+        return imageId;
     }
 
     public Task<(Stream Stream, string ContentType)> Read(Guid tcg, string name, CancellationToken ct)
@@ -61,3 +62,4 @@ public sealed class LocalMediaStorage(IConfiguration config) : IMediaStorage
         return Task.FromResult<(Stream, string)>((File.OpenRead(path), "image/png"));
     }
 }
+

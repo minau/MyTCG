@@ -457,13 +457,12 @@ public sealed class TcgPage(AuthClient auth) : ContentPage
         body.Clear();
         Heading("Studio — Éditeur");
         var name = Field("Nom", c?.Name);
-        var number = Field("Numéro", c?.CardNumber);
         var description = Field("Description", c?.Description);
         var cost = Field("Coût", (c?.ActionCost ?? 1).ToString());
         var attack = Field("Attaque", (c?.Attack ?? 0).ToString());
         var defense = Field("Défense", (c?.Defense ?? 0).ToString());
         var weight = Field("Poids", (c?.DropWeight ?? 100).ToString());
-        var image = Field("Image HTTPS ou média", c?.ImageUrl);
+        Guid? imageId = c?.ImageId;
         var type = new Picker
         {
             ItemsSource = new[]
@@ -489,15 +488,13 @@ public sealed class TcgPage(AuthClient auth) : ContentPage
         foreach (var view in new View[]
         {
             name,
-            number,
             description,
             type,
             rarity,
             cost,
             attack,
             defense,
-            weight,
-            image
+            weight
         }
 
         )
@@ -509,18 +506,16 @@ public sealed class TcgPage(AuthClient auth) : ContentPage
             _ = int.TryParse(cost.Text, out var co);
             _ = int.TryParse(attack.Text, out var at);
             _ = int.TryParse(defense.Text, out var de);
-            preview.Content = Card(new CardDto(c?.Id ?? Guid.Empty, name.Text ?? "", description.Text ?? "", number.Text ?? "", Math.Max(0, type.SelectedIndex), Math.Max(0, rarity.SelectedIndex), co, at, de, 1, image.Text, true));
+            preview.Content = Card(new CardDto(c?.Id ?? Guid.Empty, current!.Id, name.Text ?? "", description.Text ?? "", c?.CardNumber ?? 0, Math.Max(0, type.SelectedIndex), Math.Max(0, rarity.SelectedIndex), co, at, de, 1, imageId, true));
         }
 
         foreach (var field in new[]
         {
             name,
             description,
-            number,
             cost,
             attack,
-            defense,
-            image
+            defense
         }
 
         )
@@ -541,13 +536,14 @@ public sealed class TcgPage(AuthClient auth) : ContentPage
                 ".webp" => "image/webp",
                 _ => "application/octet-stream"
             };
-            image.Text = await auth.Upload(Prefix + "media", stream, mime);
+            imageId = await auth.Upload(Prefix + "media", stream, mime);
+            Preview();
         }));
         body.Add(Button("Enregistrer", async () =>
         {
             if (!int.TryParse(cost.Text, out var co) || !int.TryParse(attack.Text, out var at) || !int.TryParse(defense.Text, out var de) || !double.TryParse(weight.Text, out var w))
                 throw new ClientException("Valeurs numériques invalides.");
-            await auth.Request<CardDto>(c is null ? HttpMethod.Post : HttpMethod.Put, Prefix + "cards" + (c is null ? "" : $"/{c.Id}"), new CardRequest(name.Text ?? "", description.Text ?? "", number.Text ?? "", type.SelectedIndex, rarity.SelectedIndex, co, type.SelectedIndex == 0 ? at : null, type.SelectedIndex == 0 ? de : null, w, string.IsNullOrWhiteSpace(image.Text) ? null : image.Text, c?.IsActive ?? true));
+            await auth.Request<CardDto>(c is null ? HttpMethod.Post : HttpMethod.Put, Prefix + "cards" + (c is null ? "" : $"/{c.Id}"), new CardRequest(name.Text ?? "", description.Text ?? "", type.SelectedIndex, rarity.SelectedIndex, co, type.SelectedIndex == 0 ? at : null, type.SelectedIndex == 0 ? de : null, w, imageId, c?.IsActive ?? true));
             await Render();
         }));
         body.Add(Button("Annuler", Render));
@@ -619,3 +615,4 @@ public sealed class TcgPage(AuthClient auth) : ContentPage
 
     private sealed record CodeResponse(string Code);
 }
+

@@ -63,14 +63,14 @@ public sealed class Card
     public Guid TcgId { get; set; }
     public string Name { get; set; } = "";
     public string Description { get; set; } = "";
-    public string CardNumber { get; set; } = "";
+    public int CardNumber { get; set; }
     public CardType CardType { get; set; }
     public Rarity Rarity { get; set; }
     public int ActionCost { get; set; }
     public int? Attack { get; set; }
     public int? Defense { get; set; }
     public double DropWeight { get; set; }
-    public string? ImageUrl { get; set; }
+    public Guid? ImageId { get; set; }
     public bool IsActive { get; set; } = true;
     public DateTimeOffset CreatedAt { get; set; } = DateTimeOffset.UtcNow;
     public DateTimeOffset UpdatedAt { get; set; } = DateTimeOffset.UtcNow;
@@ -121,3 +121,4 @@ public sealed class DeckCard
     public Guid CardId { get; set; }
     public int Quantity { get; set; }
 }
+

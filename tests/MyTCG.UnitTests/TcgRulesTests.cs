@@ -7,7 +7,7 @@ using Xunit;
 namespace MyTCG.UnitTests;
 public sealed class TcgRulesTests
 {
-    private static CardRequest Valid => new("Hero", "Text", "001", 0, 0, 1, 0, 0, 100, null);
+    private static CardRequest Valid => new("Hero", "Text", 0, 0, 1, 0, 0, 100, null);
 
     [Theory]
     [InlineData(0)]
@@ -86,3 +86,4 @@ public sealed class TcgRulesTests
         Assert.Same(only, BoosterDrawing.Pick([only], [1, 2, 4, 8, 16], 0.99));
     }
 }
+

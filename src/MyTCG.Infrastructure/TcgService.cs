@@ -166,7 +166,7 @@ public sealed class TcgService(AppDbContext db, IDataProtectionProvider protecti
         return code;
     }
 
-    internal static CardDto CardDto(Card c) => new(c.Id, c.TcgId, c.Name, c.Description, c.CardNumber, (int)c.CardType, (int)c.Rarity, c.ActionCost, c.Attack, c.Defense, c.DropWeight, c.ImageId, c.IsActive);
+    internal static CardDto CardDto(Card c) => new(c.Id, c.TcgId, c.Name, c.Description, c.CardNumber, (int)c.CardType, (int)c.Rarity, c.AttackCost, c.RetreatCost, c.Attack, c.Defense, c.DropWeight, c.ImageId, c.IsActive);
     public async Task<CardDto[]> Cards(Guid user, Guid tcg)
     {
         await Member(user, tcg);
@@ -175,8 +175,8 @@ public sealed class TcgService(AppDbContext db, IDataProtectionProvider protecti
 
     public static void ValidateCard(CardRequest r)
     {
-        if (string.IsNullOrWhiteSpace(r.Name) || r.Name.Length > 150 || r.Description is null || r.Description.Length > 8000 || !Enum.IsDefined((CardType)r.CardType) || !Enum.IsDefined((Rarity)r.Rarity) || r.ActionCost is < 1 or > 12 || r.Attack < 0 || r.Defense < 0 || (r.CardType == 0 && (r.Attack is null || r.Defense is null)) || !double.IsFinite(r.DropWeight) || r.DropWeight < 0 || r.DropWeight > 1e12 || (r.IsActive && r.DropWeight <= 0))
-            throw Error(400, "Propriétés de carte invalides (coût 1–12, statistiques positives, poids actif strictement positif).");
+        if (string.IsNullOrWhiteSpace(r.Name) || r.Name.Length > 150 || r.Description is null || r.Description.Length > 8000 || !Enum.IsDefined((CardType)r.CardType) || !Enum.IsDefined((Rarity)r.Rarity) || r.AttackCost is < 0 or > 10 || r.RetreatCost is < 0 or > 10 || r.Attack < 0 || r.Defense < 0 || (r.CardType == 0 && (r.Attack is null || r.Defense is null)) || !double.IsFinite(r.DropWeight) || r.DropWeight < 0 || r.DropWeight > 1e12 || (r.IsActive && r.DropWeight <= 0))
+            throw Error(400, "Propriétés de carte invalides (coûts d’attaque et de retrait 0–10, statistiques positives, poids actif strictement positif).");
     }
 
     private static void ValidateMedia(string? url, Guid? tcg)
@@ -221,7 +221,8 @@ public sealed class TcgService(AppDbContext db, IDataProtectionProvider protecti
         c.Description = r.Description;
         c.CardType = (CardType)r.CardType;
         c.Rarity = (Rarity)r.Rarity;
-        c.ActionCost = r.ActionCost;
+        c.AttackCost = r.AttackCost;
+        c.RetreatCost = r.RetreatCost;
         c.Attack = r.Attack;
         c.Defense = r.Defense;
         c.DropWeight = r.DropWeight;

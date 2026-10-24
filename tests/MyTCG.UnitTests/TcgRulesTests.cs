@@ -7,13 +7,20 @@ using Xunit;
 namespace MyTCG.UnitTests;
 public sealed class TcgRulesTests
 {
-    private static CardRequest Valid => new("Hero", "Text", 0, 0, 1, 0, 0, 100, null);
+    private static CardRequest Valid => new("Hero", "Text", 0, 0, 1, 0, 0, 0, 100, null);
 
     [Theory]
-    [InlineData(0)]
-    [InlineData(13)]
-    [InlineData(-1)]
-    public void InvalidCosts(int cost) => Assert.Throws<TcgException>(() => TcgService.ValidateCard(Valid with { ActionCost = cost }));
+    [InlineData(-1, 0)]
+    [InlineData(11, 0)]
+    [InlineData(0, -1)]
+    [InlineData(0, 11)]
+    public void InvalidCosts(int attackCost, int retreatCost) => Assert.Throws<TcgException>(() => TcgService.ValidateCard(Valid with { AttackCost = attackCost, RetreatCost = retreatCost }));
+    [Theory]
+    [InlineData(0, 0)]
+    [InlineData(0, 10)]
+    [InlineData(10, 0)]
+    [InlineData(10, 10)]
+    public void CostsIncludeBothBoundaries(int attackCost, int retreatCost) => TcgService.ValidateCard(Valid with { AttackCost = attackCost, RetreatCost = retreatCost });
     [Theory]
     [InlineData(-1, 0)]
     [InlineData(0, -1)]

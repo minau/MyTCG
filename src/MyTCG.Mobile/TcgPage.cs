@@ -299,7 +299,7 @@ public sealed class TcgPage(AuthClient auth) : ContentPage
                         if (tab == "Studio")
                             Editor(c);
                         else
-                            await DisplayAlertAsync(c.Name, c.Description + $"\nCoût {c.ActionCost} · Attaque {c.Attack} · Défense {c.Defense}", "Fermer");
+                            await DisplayAlertAsync(c.Name, c.Description + $"\nCoût d’attaque {c.AttackCost} · Coût de retrait {c.RetreatCost} · Attaque {c.Attack} · Défense {c.Defense}", "Fermer");
                     }));
                     if (tab == "Studio")
                         list.Add(Button(c.IsActive ? "Archiver" : "Activer", async () =>
@@ -458,7 +458,9 @@ public sealed class TcgPage(AuthClient auth) : ContentPage
         Heading("Studio — Éditeur");
         var name = Field("Nom", c?.Name);
         var description = Field("Description", c?.Description);
-        var cost = Field("Coût", (c?.ActionCost ?? 1).ToString());
+        var attackCost = Field("Coût d’attaque (0–10)", (c?.AttackCost ?? 0).ToString());
+        var retreatCost = Field("Coût de retrait (0–10)", (c?.RetreatCost ?? 0).ToString());
+        attackCost.Keyboard = retreatCost.Keyboard = Keyboard.Numeric;
         var attack = Field("Attaque", (c?.Attack ?? 0).ToString());
         var defense = Field("Défense", (c?.Defense ?? 0).ToString());
         var weight = Field("Poids", (c?.DropWeight ?? 100).ToString());
@@ -491,7 +493,8 @@ public sealed class TcgPage(AuthClient auth) : ContentPage
             description,
             type,
             rarity,
-            cost,
+            attackCost,
+            retreatCost,
             attack,
             defense,
             weight
@@ -503,17 +506,19 @@ public sealed class TcgPage(AuthClient auth) : ContentPage
         body.Add(preview);
         void Preview()
         {
-            _ = int.TryParse(cost.Text, out var co);
+            _ = int.TryParse(attackCost.Text, out var ac);
+            _ = int.TryParse(retreatCost.Text, out var rc);
             _ = int.TryParse(attack.Text, out var at);
             _ = int.TryParse(defense.Text, out var de);
-            preview.Content = Card(new CardDto(c?.Id ?? Guid.Empty, current!.Id, name.Text ?? "", description.Text ?? "", c?.CardNumber ?? 0, Math.Max(0, type.SelectedIndex), Math.Max(0, rarity.SelectedIndex), co, at, de, 1, imageId, true));
+            preview.Content = Card(new CardDto(c?.Id ?? Guid.Empty, current!.Id, name.Text ?? "", description.Text ?? "", c?.CardNumber ?? 0, Math.Max(0, type.SelectedIndex), Math.Max(0, rarity.SelectedIndex), ac, rc, at, de, 1, imageId, true));
         }
 
         foreach (var field in new[]
         {
             name,
             description,
-            cost,
+            attackCost,
+            retreatCost,
             attack,
             defense
         }
@@ -541,9 +546,11 @@ public sealed class TcgPage(AuthClient auth) : ContentPage
         }));
         body.Add(Button("Enregistrer", async () =>
         {
-            if (!int.TryParse(cost.Text, out var co) || !int.TryParse(attack.Text, out var at) || !int.TryParse(defense.Text, out var de) || !double.TryParse(weight.Text, out var w))
+            if (!int.TryParse(attackCost.Text, out var ac) || !int.TryParse(retreatCost.Text, out var rc) || !int.TryParse(attack.Text, out var at) || !int.TryParse(defense.Text, out var de) || !double.TryParse(weight.Text, out var w))
                 throw new ClientException("Valeurs numériques invalides.");
-            await auth.Request<CardDto>(c is null ? HttpMethod.Post : HttpMethod.Put, Prefix + "cards" + (c is null ? "" : $"/{c.Id}"), new CardRequest(name.Text ?? "", description.Text ?? "", type.SelectedIndex, rarity.SelectedIndex, co, type.SelectedIndex == 0 ? at : null, type.SelectedIndex == 0 ? de : null, w, imageId, c?.IsActive ?? true));
+            if (ac is < 0 or > 10 || rc is < 0 or > 10)
+                throw new ClientException("Les coûts d’attaque et de retrait doivent être compris entre 0 et 10.");
+            await auth.Request<CardDto>(c is null ? HttpMethod.Post : HttpMethod.Put, Prefix + "cards" + (c is null ? "" : $"/{c.Id}"), new CardRequest(name.Text ?? "", description.Text ?? "", type.SelectedIndex, rarity.SelectedIndex, ac, rc, type.SelectedIndex == 0 ? at : null, type.SelectedIndex == 0 ? de : null, w, imageId, c?.IsActive ?? true));
             await Render();
         }));
         body.Add(Button("Annuler", Render));

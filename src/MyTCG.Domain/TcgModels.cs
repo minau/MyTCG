@@ -14,8 +14,9 @@ public enum MembershipRole
 
 public enum CardType
 {
-    Character,
-    Action
+    Character = 0,
+    Effect = 1,
+    Equipment = 2
 }
 
 public enum Rarity

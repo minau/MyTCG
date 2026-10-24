@@ -101,6 +101,27 @@ public sealed class TcgTests(ApiFixture fixture) : IClassFixture<ApiFixture>
         Assert.Equal(HttpStatusCode.Forbidden, (await member.GetAsync(P(b, "/collection"))).StatusCode);
     }
 
+    [Theory]
+    [InlineData(1)]
+    [InlineData(2)]
+    public async Task EffectAndEquipmentTypesRoundTrip(int type)
+    {
+        using var c = await Player();
+        var t = await Create(c);
+        var request = new CardRequest("Carte", "Description", "001", type, 0, 3, null, null, 100, null);
+        var created = await c.PostAsJsonAsync(P(t, "/cards"), request);
+        created.EnsureSuccessStatusCode();
+        var card = (await created.Content.ReadFromJsonAsync<CardDto>())!;
+        Assert.Equal(type, card.CardType);
+        var persisted = Assert.Single((await c.GetFromJsonAsync<CardDto[]>(P(t, "/cards")))!);
+        Assert.Equal(type, persisted.CardType);
+        Assert.Null(persisted.Attack);
+        Assert.Null(persisted.Defense);
+        var updated = await c.PutAsJsonAsync(P(t, $"/cards/{card.Id}"), request with { CardType = type == 1 ? 2 : 1 });
+        updated.EnsureSuccessStatusCode();
+        Assert.Equal(type == 1 ? 2 : 1, (await updated.Content.ReadFromJsonAsync<CardDto>())!.CardType);
+    }
+
     [Fact]
     public async Task BoosterDuplicatesIdempotencyArchivalAndProgress()
     {

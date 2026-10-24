@@ -1,0 +1,19 @@
+FROM mcr.microsoft.com/dotnet/sdk:10.0.402 AS build
+WORKDIR /source
+COPY global.json Directory.Build.props ./
+COPY src/MyTCG.Domain/ src/MyTCG.Domain/
+COPY src/MyTCG.Contracts/ src/MyTCG.Contracts/
+COPY src/MyTCG.Application/ src/MyTCG.Application/
+COPY src/MyTCG.Infrastructure/ src/MyTCG.Infrastructure/
+COPY src/MyTCG.Api/ src/MyTCG.Api/
+RUN dotnet publish src/MyTCG.Api/MyTCG.Api.csproj -c Release -p:RestoreLockedMode=true -o /app --nologo
+FROM mcr.microsoft.com/dotnet/aspnet:10.0.13 AS runtime
+USER root
+RUN apt-get update && apt-get install -y --no-install-recommends curl && rm -rf /var/lib/apt/lists/*
+WORKDIR /app
+COPY --from=build /app .
+ENV ASPNETCORE_HTTP_PORTS=8080
+EXPOSE 8080
+USER app
+HEALTHCHECK --interval=15s --timeout=5s --start-period=20s CMD curl --fail --silent http://localhost:8080/health || exit 1
+ENTRYPOINT ["dotnet", "MyTCG.Api.dll"]

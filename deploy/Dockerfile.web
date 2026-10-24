@@ -1,0 +1,11 @@
+FROM mcr.microsoft.com/dotnet/sdk:10.0.402 AS build
+WORKDIR /source
+COPY global.json Directory.Build.props ./
+COPY src/MyTCG.Contracts/ src/MyTCG.Contracts/
+COPY src/MyTCG.Client/ src/MyTCG.Client/
+COPY src/MyTCG.Web/ src/MyTCG.Web/
+RUN dotnet publish src/MyTCG.Web/MyTCG.Web.csproj -c Release -p:RestoreLockedMode=true -o /app --nologo
+FROM caddy:2-alpine
+COPY deploy/Caddyfile.web /etc/caddy/Caddyfile
+COPY --from=build /app/wwwroot /srv
+EXPOSE 8080

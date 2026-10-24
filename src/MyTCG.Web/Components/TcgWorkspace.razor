@@ -5,10 +5,13 @@
 @inject Microsoft.JSInterop.IJSRuntime JS
 @using Microsoft.JSInterop
 <div class="tcg-workspace">
-<button class="tcg-switcher secondary" disabled="@busy" aria-expanded="@drawer" @onclick="()=>drawer=true">@if(current?.CoverImage is {} coverImage){<img class="switcher-cover" src="@coverImage" alt="" referrerpolicy="no-referrer" />}else{<span>◇</span>} @(current?.Name??"Choisir un univers") ▾</button>
-@if(drawer){<div class="drawer-backdrop" @onclick="()=>drawer=false"></div><aside class="tcg-drawer" role="dialog" aria-modal="true" aria-label="Mes TCG" tabindex="-1" @ref="drawerElement" @onkeydown="DrawerKey"><button class="secondary" @onclick="()=>drawer=false">Fermer ×</button><h2>Mes TCG</h2>@foreach(var t in mine){<button class="secondary" disabled="@busy" aria-current="@(current?.Id==t.Id?"true":"false")" @onclick="()=>Select(t)">@if(t.CoverImage is {} tcgImage){<img class="switcher-cover" src="@tcgImage" alt="" referrerpolicy="no-referrer" />}else{<span>◇</span>} @t.Name @(t.IsAdmin?"· Administrateur":"") @(current?.Id==t.Id?"✓":"")</button>}@if(mine.Length==0){<p>Vous n’avez rejoint aucun univers.</p>}<h3>Actions</h3><button @onclick='()=>Action("create")'>Créer un TCG</button><button @onclick='()=>Action("join")'>Rejoindre par code</button><button @onclick='()=>Action("discover")'>Parcourir les TCG publics</button></aside>}
+<button class="tcg-switcher secondary" disabled="@busy" aria-label="Ouvrir le menu" aria-expanded="@drawer" @onclick="()=>drawer=true">☰ Menu</button>
+@if(drawer){<div class="drawer-backdrop" @onclick="()=>drawer=false"></div><aside class="tcg-drawer" role="dialog" aria-modal="true" aria-label="Menu principal" tabindex="-1" @ref="drawerElement" @onkeydown="DrawerKey"><button class="secondary" @onclick="()=>drawer=false">Fermer ×</button><h2>Mes TCG</h2>@foreach(var t in mine){<button class="secondary" disabled="@busy" aria-current="@(current?.Id==t.Id?"true":"false")" @onclick="()=>Select(t)">@if(t.CoverImage is {} tcgImage){<img class="switcher-cover" src="@tcgImage" alt="" referrerpolicy="no-referrer" />}else{<span>◇</span>} @t.Name @(t.IsAdmin?"· Administrateur":"") @(current?.Id==t.Id?"✓":"")</button>}@if(mine.Length==0){<p>Vous n’avez rejoint aucun univers.</p>}<h3>Mon Compte</h3><button class="secondary" disabled="@busy" aria-current='@(mode=="account"?"page":null)' @onclick='()=>Action("account")'>Mon Compte</button><h3>Actions</h3><button @onclick='()=>Action("create")'>Créer un TCG</button><button @onclick='()=>Action("join")'>Rejoindre par code</button><button @onclick='()=>Action("discover")'>Parcourir les TCG publics</button></aside>}
 @if(error is not null){<p class="notice error" role="alert">@error</p><button class="secondary" @onclick="Reload">Réessayer</button>}
-@if(loading){<p role="status">Chargement de votre univers…</p>}
+@if(mode=="account"){
+@ChildContent
+}
+else if(loading){<p role="status">Chargement de votre univers…</p>}
 else if(mode=="create"){
 <section class="panel"><h2>Créer votre univers</h2><label>Nom<input @bind="tcgName" maxlength="100" /></label><label>Description<textarea @bind="tcgDescription"></textarea></label><label>Image de couverture HTTPS<input @bind="cover" /></label><label>Visibilité<select @bind="visibility"><option value="0">Public</option><option value="1">Privé</option></select></label><button @onclick="Create" disabled="@busy">Créer le TCG</button></section>
 }else if(mode=="join"){
@@ -17,7 +20,6 @@ else if(mode=="create"){
 <h2>Explorer les univers</h2><label>Rechercher un TCG<input @bind="publicSearch" /></label><button @onclick="Discover">Rechercher</button><div class="tiles">@foreach(var t in publics){<article class="panel">@if(t.CoverImage is not null){<img class="cover" src="@t.CoverImage" alt="" referrerpolicy="no-referrer" />}<h3>@t.Name</h3><p>@t.Description</p><p>@t.Members membres</p><button disabled="@(busy||mine.Any(x=>x.Id==t.Id))" @onclick="()=>Join(t)">@(mine.Any(x=>x.Id==t.Id)?"Déjà membre":"Rejoindre")</button></article>}</div>@if(publics.Length==0){<p>Aucun univers public trouvé.</p>}
 }else if(current is null){<section class="panel"><h2>Votre prochain univers vous attend.</h2><p>Créez un TCG ou rejoignez celui de vos amis.</p><button @onclick='()=>Action("create")'>Créer un TCG</button><button class="secondary" @onclick='()=>Action("discover")'>Explorer les univers</button></section>}
 else{
-<section class="intro"><p class="eyebrow">VOTRE UNIVERS</p><h1>@current.Name</h1><p>@current.Description</p></section>
 <nav class="tcg-nav" aria-label="Navigation du TCG">@foreach(var item in current.IsAdmin?new[]{"Collection","Boosters","Decks","Combat","Studio"}:new[]{"Collection","Boosters","Decks","Combat"}){<button class="@(tab==item?"selected":"secondary")" aria-current="@(tab==item?"page":null)" @onclick="()=>ChangeTab(item)">@item</button>}</nav>
 @if(tab=="Combat"){<section class="panel"><h2>Les prochains défis se préparent.</h2><p>Le combat arrive prochainement.</p></section>}
 @if(tab=="Collection"||tab=="Studio"){
@@ -41,6 +43,7 @@ else{<h2>Mes decks</h2><button @onclick="()=>EditDeck(null)">Créer un deck</but
 @if(deleteDeck is not null){<section class="panel" role="alertdialog" aria-label="Supprimer le deck"><p>Supprimer « @deleteDeck.Name » ?</p><button disabled="@busy" @onclick="DeleteDeck">Confirmer la suppression</button><button class="secondary" @onclick="()=>deleteDeck=null">Annuler</button></section>}
 </div>
 @code{
+ [Parameter] public RenderFragment? ChildContent { get; set; }
  TcgDto[] mine=[],publics=[];TcgDto? current;CardDto[] cards=[];CollectionItem[] collection=[];DeckDto[] decks=[];OpeningDto[] history=[];CollectionProgressDto progress=new(0,0,0);BoosterStatusDto status=new(0,3,DateTimeOffset.UtcNow);
  bool drawer,loading=true,busy,showAll,editing,deckEditing;string mode="",tab="Collection",tcgName="",tcgDescription="",cover="",code="",publicSearch="",search="",sort="number",deckName="";string deckSearch="";int deckRarity=-1,deckType=-1;int visibility,rarity=-1,type=-1,version,revealed;string? error,invitation,openKey;CardDto? editCard,detail;OpeningDto? opening;DeckDto? deleteDeck;Guid? deckId;Dictionary<Guid,int> deckEntries=[];ElementReference drawerElement;bool focused;
  readonly string[] rarities=["Commune","Peu commune","Rare","Épique","Légendaire"];

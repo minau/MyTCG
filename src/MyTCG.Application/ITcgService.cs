@@ -34,6 +34,7 @@ public interface ITcgService
 
 public interface IMediaStorage
 {
-    Task<string> Save(Guid tcg, Stream stream, string contentType, CancellationToken cancellationToken);
+    Task<Guid> Save(Guid tcg, Stream stream, string contentType, CancellationToken cancellationToken);
     Task<(Stream Stream, string ContentType)> Read(Guid tcg, string name, CancellationToken cancellationToken);
 }
+

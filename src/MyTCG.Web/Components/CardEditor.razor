@@ -3,19 +3,20 @@
 @using Microsoft.AspNetCore.Components.Forms
 @inject AuthClient Auth
 <div class="editor-layout"><section class="panel"><h2>@(Card is null?"Nouvelle carte":"Modifier la carte")</h2>
-<label>Nom<input @bind="name" maxlength="150" /></label><label>Numéro<input @bind="number" maxlength="40" /></label><label>Description<textarea @bind="description" maxlength="8000"></textarea></label>
+<label>Nom<input @bind="name" maxlength="150" /></label><label>Description<textarea @bind="description" maxlength="8000"></textarea></label>
 <label>Type<select @bind="type"><option value="0">Personnage</option><option value="1">Effet</option><option value="2">Équipement</option></select></label>
 <label>Rareté<select @bind="rarity">@for(var i=0;i<5;i++){<option value="@i">@rarities[i]</option>}</select></label>
 <label>Coût<input type="number" min="1" max="12" @bind="cost" /></label>
 @if(type==0){<label>Attaque<input type="number" min="0" @bind="attack" /></label><label>Défense<input type="number" min="0" @bind="defense" /></label>}
-<label>Poids de tirage<input type="number" min="0.01" step="0.01" @bind="weight" /></label><label>URL d’illustration HTTPS<input @bind="url" /></label><label>Importer une illustration (5 Mo)<InputFile OnChange="Upload" accept="image/png,image/jpeg,image/webp" disabled="@busy" /></label><label><input type="checkbox" @bind="active" /> Active</label>
+<label>Poids de tirage<input type="number" min="0.01" step="0.01" @bind="weight" /></label><label>Importer une illustration (5 Mo)<InputFile OnChange="Upload" accept="image/png,image/jpeg,image/webp" disabled="@busy" /></label><label><input type="checkbox" @bind="active" /> Active</label>
 @if(error is not null){<p role="alert">@error</p>}<button @onclick="Save" disabled="@busy">Enregistrer</button><button class="secondary" @onclick="Cancel">Annuler</button></section><CardView Card="Preview" /></div>
 @code{
  [Parameter] public Guid TcgId{get;set;} [Parameter] public CardDto? Card{get;set;} [Parameter] public EventCallback Saved{get;set;} [Parameter] public EventCallback Cancel{get;set;}
- string name="",number="",description="",url=""; int type,rarity,cost=1,attack,defense;double weight=100;bool active=true,busy;string? error;
+ string name="",description=""; Guid? imageId; int type,rarity,cost=1,attack,defense;double weight=100;bool active=true,busy;string? error;
  readonly string[] rarities=["Commune","Peu commune","Rare","Épique","Légendaire"];
- CardDto Preview=>new(Card?.Id??Guid.Empty,name,description,number,type,rarity,cost,type==0?attack:null,type==0?defense:null,weight,url,active);
- protected override void OnInitialized(){if(Card is {} c){name=c.Name;number=c.CardNumber;description=c.Description;url=c.ImageUrl??"";type=c.CardType;rarity=c.Rarity;cost=c.ActionCost;attack=c.Attack??0;defense=c.Defense??0;weight=c.DropWeight;active=c.IsActive;}}
- async Task Upload(InputFileChangeEventArgs e){busy=true;error=null;try{await using var stream=e.File.OpenReadStream(5*1024*1024);url=await Auth.Upload($"api/tcgs/{TcgId}/media",stream,e.File.ContentType);}catch(Exception ex)when(ex is ClientException or IOException){error=ex.Message;}finally{busy=false;}}
- async Task Save(){busy=true;error=null;try{await Auth.Request<CardDto>(Card is null?HttpMethod.Post:HttpMethod.Put,$"api/tcgs/{TcgId}/cards"+(Card is null?"":$"/{Card.Id}"),new CardRequest(name,description,number,type,rarity,cost,type==0?attack:null,type==0?defense:null,weight,string.IsNullOrWhiteSpace(url)?null:url,active));await Saved.InvokeAsync();}catch(ClientException ex){error=ex.Message;}finally{busy=false;}}
+ CardDto Preview=>new(Card?.Id??Guid.Empty,TcgId,name,description,Card?.CardNumber??0,type,rarity,cost,type==0?attack:null,type==0?defense:null,weight,imageId,active);
+ protected override void OnInitialized(){if(Card is {} c){name=c.Name;description=c.Description;imageId=c.ImageId;type=c.CardType;rarity=c.Rarity;cost=c.ActionCost;attack=c.Attack??0;defense=c.Defense??0;weight=c.DropWeight;active=c.IsActive;}}
+ async Task Upload(InputFileChangeEventArgs e){busy=true;error=null;try{await using var stream=e.File.OpenReadStream(5*1024*1024);imageId=await Auth.Upload($"api/tcgs/{TcgId}/media",stream,e.File.ContentType);}catch(Exception ex)when(ex is ClientException or IOException){error=ex.Message;}finally{busy=false;}}
+ async Task Save(){busy=true;error=null;try{await Auth.Request<CardDto>(Card is null?HttpMethod.Post:HttpMethod.Put,$"api/tcgs/{TcgId}/cards"+(Card is null?"":$"/{Card.Id}"),new CardRequest(name,description,type,rarity,cost,type==0?attack:null,type==0?defense:null,weight,imageId,active));await Saved.InvokeAsync();}catch(ClientException ex){error=ex.Message;}finally{busy=false;}}
 }
+

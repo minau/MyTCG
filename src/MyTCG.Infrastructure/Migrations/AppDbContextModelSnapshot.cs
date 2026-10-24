@@ -216,9 +216,8 @@ namespace MyTCG.Infrastructure.Migrations
                     b.Property<int?>("Attack")
                         .HasColumnType("integer");
 
-                    b.Property<string>("CardNumber")
-                        .IsRequired()
-                        .HasColumnType("text");
+                    b.Property<int>("CardNumber")
+                        .HasColumnType("integer");
 
                     b.Property<int>("CardType")
                         .HasColumnType("integer");
@@ -236,8 +235,8 @@ namespace MyTCG.Infrastructure.Migrations
                     b.Property<double>("DropWeight")
                         .HasColumnType("double precision");
 
-                    b.Property<string>("ImageUrl")
-                        .HasColumnType("text");
+                    b.Property<Guid?>("ImageId")
+                        .HasColumnType("uuid");
 
                     b.Property<bool>("IsActive")
                         .HasColumnType("boolean");

@@ -8,7 +8,8 @@
  [Parameter,EditorRequired] public CardDto Card {get;set;}=null!;
  [Parameter] public int? Quantity {get;set;}
  [Parameter] public bool Locked {get;set;}
- private string? image, previous;
+ private string? image; private (Guid, Guid?) previous;
  private static readonly string[] Rarities=["Commune","Peu commune","Rare","Épique","Légendaire"];
- protected override async Task OnParametersSetAsync(){if(previous==Card.ImageUrl)return;previous=Card.ImageUrl;image=null;try{var target=previous;var result=await Auth.Image(target);if(previous==target)image=result;}catch(MyTCG.Client.ClientException){}}
+ protected override async Task OnParametersSetAsync(){if(previous==(Card.TcgId,Card.ImageId))return;previous=(Card.TcgId,Card.ImageId);image=null;try{var target=previous;var result=await Auth.Image(target.Item1,target.Item2);if(previous==target)image=result;}catch(MyTCG.Client.ClientException){}}
 }
+

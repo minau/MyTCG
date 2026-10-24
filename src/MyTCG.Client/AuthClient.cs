@@ -75,23 +75,24 @@ public sealed class AuthClient(HttpClient http, ISessionStorage storage)
         try { await EnsureFresh(); using var response = await Send(method,path,body,true); await Ensure(response); }
         finally { gate.Release(); }
     }
-    public async Task<string> Upload(string path, Stream stream, string contentType) {
+    public async Task<Guid> Upload(string path, Stream stream, string contentType) {
         await gate.WaitAsync();
         try {
             await EnsureFresh(); using var request = new HttpRequestMessage(HttpMethod.Post,path);
             request.Headers.Authorization = new AuthenticationHeaderValue("Bearer",session!.AccessToken);
             request.Content = new StreamContent(stream); request.Content.Headers.ContentType = new(contentType);
             using var response = await http.SendAsync(request); await Ensure(response);
-            return (await response.Content.ReadFromJsonAsync<MediaResponse>())!.Url;
+            return (await response.Content.ReadFromJsonAsync<MediaResponse>())!.ImageId;
         } finally { gate.Release(); }
     }
-    public async Task<string?> Image(string? path) {
-        if (path is null || !path.StartsWith("/api/tcgs/",StringComparison.Ordinal)) return path;
+    public async Task<string?> Image(Guid tcgId, Guid? imageId) {
+        if (imageId is null) return null;
+        var path = $"/api/tcgs/{tcgId}/media/{imageId:N}.png";
         await gate.WaitAsync();
         try { await EnsureFresh(); using var response = await Send(HttpMethod.Get,path.TrimStart('/'),null,true); await Ensure(response); return "data:image/png;base64,"+Convert.ToBase64String(await response.Content.ReadAsByteArrayAsync()); }
         finally { gate.Release(); }
     }
-    private sealed record MediaResponse(string Url);
+    private sealed record MediaResponse(Guid ImageId);
     private async Task EnsureFresh() {
         if (session is null || session.ExpiresAt <= DateTimeOffset.UtcNow.AddSeconds(30)) await RefreshCore();
         if (session is null) throw new ClientException("Veuillez vous reconnecter.");
@@ -128,3 +129,4 @@ public sealed class AuthClient(HttpClient http, ISessionStorage storage)
         throw new ClientException(error?.Errors is { Length: > 0 } errors ? string.Join(" ", errors) : "La requête a échoué. Réessayez.");
     }
 }
+

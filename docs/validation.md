@@ -54,3 +54,11 @@ Le brouillon contient :
 **Sauvegarder un brouillon ne publie pas l’environnement et ne prouve pas que ses autorisations réseau sont appliquées à la machine courante.** Revoir et enregistrer les paramètres, puis publier via l’interface. Après application, reprendre `docker compose --env-file .env -f deploy/docker-compose.yml -f deploy/docker-compose.dev.yml up -d --build`, inspecter le job migrate et les health checks, et rejouer le smoke web sur le port 8088.
 
 Les secrets de développement sont générés dans `.env` ignoré et protégé en 0600 ; aucun secret de production n’est fourni ou committé. Une restauration dans une nouvelle tâche après publication n’a pas été testée.
+
+## Numéros automatiques et illustrations uploadées — 24 octobre 2026
+
+- Compilation `MyTCG.Server.slnf` réussie : API, client web et projets de tests, zéro avertissement/erreur.
+- Suite xUnit : **27 tests unitaires + 40 tests d’intégration PostgreSQL réussis**, aucun échec ni test ignoré.
+- Tests ajoutés : 12 créations concurrentes (numéros uniques et croissants par set), numéro conservé à la modification/archivage, refus d’un numéro ou d’une URL externe dans la requête, image existante uploadée dans le même set, migration de données héritées et aller-retour de migration.
+- Restauration verrouillée depuis le cache local, avec `-p:NuGetAudit=false` faute d’accès réseau dans le terminal ; l’audit de vulnérabilités n’a pas été exécuté. Les sources de packages et versions n’ont pas été modifiées.
+- Le script smoke navigateur a été adapté et sa syntaxe JavaScript vérifiée ; le parcours navigateur et la compilation native MAUI n’ont pas été exécutés pour cette modification.

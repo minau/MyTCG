@@ -35,8 +35,8 @@ public static class TcgEndpoints
         g.MapPost("/{tcgId:guid}/media", async (Guid tcgId, ITcgService s, IMediaStorage storage, HttpContext c, CancellationToken ct) =>
         {
             await s.AuthorizeAdmin(User(c), tcgId);
-            var url = await storage.Save(tcgId, c.Request.Body, c.Request.ContentType ?? "", ct);
-            return Results.Ok(new { Url = url });
+            var imageId = await storage.Save(tcgId, c.Request.Body, c.Request.ContentType ?? "", ct);
+            return Results.Ok(new { ImageId = imageId });
         });
         g.MapGet("/{tcgId:guid}/media/{name}", async (Guid tcgId, string name, ITcgService s, IMediaStorage storage, HttpContext c, CancellationToken ct) =>
         {
@@ -47,3 +47,4 @@ public static class TcgEndpoints
         });
     }
 }
+

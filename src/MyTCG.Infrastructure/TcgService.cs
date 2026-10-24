@@ -39,7 +39,7 @@ public static class BoosterDrawing
     public static double Unit() => RandomNumberGenerator.GetInt32(int.MaxValue) / (double)int.MaxValue;
 }
 
-public sealed class TcgService(AppDbContext db, IDataProtectionProvider protection, BoosterOpeningService boosters, TimeProvider clock) : ITcgService
+public sealed class TcgService(AppDbContext db, IDataProtectionProvider protection, BoosterOpeningService boosters, TimeProvider clock, IMediaStorage media) : ITcgService
 {
     private readonly IDataProtector protector = protection.CreateProtector("MyTCG.Invitation.v1");
     private static TcgException Error(int status, string message) => new(status, status == 403 ? "forbidden" : status == 404 ? "not_found" : "validation", message);
@@ -166,7 +166,7 @@ public sealed class TcgService(AppDbContext db, IDataProtectionProvider protecti
         return code;
     }
 
-    internal static CardDto CardDto(Card c) => new(c.Id, c.Name, c.Description, c.CardNumber, (int)c.CardType, (int)c.Rarity, c.ActionCost, c.Attack, c.Defense, c.DropWeight, c.ImageUrl, c.IsActive);
+    internal static CardDto CardDto(Card c) => new(c.Id, c.TcgId, c.Name, c.Description, c.CardNumber, (int)c.CardType, (int)c.Rarity, c.ActionCost, c.Attack, c.Defense, c.DropWeight, c.ImageId, c.IsActive);
     public async Task<CardDto[]> Cards(Guid user, Guid tcg)
     {
         await Member(user, tcg);
@@ -175,7 +175,7 @@ public sealed class TcgService(AppDbContext db, IDataProtectionProvider protecti
 
     public static void ValidateCard(CardRequest r)
     {
-        if (string.IsNullOrWhiteSpace(r.Name) || r.Name.Length > 150 || r.Description is null || r.Description.Length > 8000 || string.IsNullOrWhiteSpace(r.CardNumber) || r.CardNumber.Length > 40 || !Enum.IsDefined((CardType)r.CardType) || !Enum.IsDefined((Rarity)r.Rarity) || r.ActionCost is < 1 or > 12 || r.Attack < 0 || r.Defense < 0 || (r.CardType == 0 && (r.Attack is null || r.Defense is null)) || !double.IsFinite(r.DropWeight) || r.DropWeight < 0 || r.DropWeight > 1e12 || (r.IsActive && r.DropWeight <= 0))
+        if (string.IsNullOrWhiteSpace(r.Name) || r.Name.Length > 150 || r.Description is null || r.Description.Length > 8000 || !Enum.IsDefined((CardType)r.CardType) || !Enum.IsDefined((Rarity)r.Rarity) || r.ActionCost is < 1 or > 12 || r.Attack < 0 || r.Defense < 0 || (r.CardType == 0 && (r.Attack is null || r.Defense is null)) || !double.IsFinite(r.DropWeight) || r.DropWeight < 0 || r.DropWeight > 1e12 || (r.IsActive && r.DropWeight <= 0))
             throw Error(400, "Propriétés de carte invalides (coût 1–12, statistiques positives, poids actif strictement positif).");
     }
 
@@ -194,30 +194,44 @@ public sealed class TcgService(AppDbContext db, IDataProtectionProvider protecti
     {
         await AuthorizeAdmin(user, tcg);
         ValidateCard(r);
-        ValidateMedia(r.ImageUrl, tcg);
+        if (r.ImageId is { } imageId)
+        {
+            try
+            {
+                var file = await media.Read(tcg, imageId.ToString("N") + ".png", CancellationToken.None);
+                await file.Stream.DisposeAsync();
+            }
+            catch (TcgException ex) when (ex.Status == 404)
+            {
+                throw Error(400, "Importez une illustration dans cet univers avant de l’utiliser.");
+            }
+        }
+        await using var tx = await db.Database.BeginTransactionAsync();
+        // Serialize number allocation per set across all API replicas.
+        _ = await db.Set<Tcg>().FromSqlInterpolated($"SELECT * FROM \"Tcg\" WHERE \"Id\"={tcg} FOR UPDATE").SingleAsync();
         var c = id is null ? new Card
         {
             TcgId = tcg
         }
 
         : await db.Set<Card>().SingleOrDefaultAsync(x => x.Id == id && x.TcgId == tcg) ?? throw Error(404, "Carte introuvable.");
-        if (await db.Set<Card>().AnyAsync(x => x.TcgId == tcg && x.CardNumber == r.CardNumber.Trim() && x.Id != c.Id))
-            throw Error(409, "Numéro déjà utilisé.");
+        if (id is null)
+            c.CardNumber = checked((await db.Set<Card>().Where(x => x.TcgId == tcg).MaxAsync(x => (int?)x.CardNumber) ?? 0) + 1);
         c.Name = r.Name.Trim();
         c.Description = r.Description;
-        c.CardNumber = r.CardNumber.Trim();
         c.CardType = (CardType)r.CardType;
         c.Rarity = (Rarity)r.Rarity;
         c.ActionCost = r.ActionCost;
         c.Attack = r.Attack;
         c.Defense = r.Defense;
         c.DropWeight = r.DropWeight;
-        c.ImageUrl = r.ImageUrl;
+        c.ImageId = r.ImageId;
         c.IsActive = r.IsActive;
         c.UpdatedAt = Now;
         if (id is null)
             db.Add(c);
         await db.SaveChangesAsync();
+        await tx.CommitAsync();
         return CardDto(c);
     }
 
@@ -324,3 +338,4 @@ public sealed class TcgService(AppDbContext db, IDataProtectionProvider protecti
         await tx.CommitAsync();
     }
 }
+

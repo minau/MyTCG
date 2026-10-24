@@ -56,7 +56,7 @@ public sealed class NativeCardView : Border
         {
             try
             {
-                var url = await auth.Image(card.ImageUrl);
+                var url = await auth.Image(card.TcgId, card.ImageId);
                 if (string.IsNullOrWhiteSpace(url))
                     return;
                 if (url.StartsWith("data:image/png;base64,", StringComparison.Ordinal))
@@ -75,3 +75,4 @@ public sealed class NativeCardView : Border
         }
     }
 }
+

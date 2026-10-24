@@ -105,3 +105,51 @@ footer { display: flex; justify-content: space-between; gap: 16px; border-top: 1
 
 .switcher-cover{width:24px;height:24px;object-fit:cover;border-radius:6px;vertical-align:middle;margin-right:6px}
 
+
+/* Keep cards equal across every row, including their clickable wrappers. */
+.card-grid,
+.deck-builder {
+    grid-auto-rows: 1fr;
+    align-items: stretch;
+}
+
+.card-grid > div,
+.deck-builder > div {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+}
+
+.card-grid > div > .card-button {
+    flex: 1;
+    align-items: stretch;
+    min-width: 0;
+}
+
+.card-grid .tcg-card,
+.deck-builder .tcg-card {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    width: 100%;
+    min-width: 0;
+    height: auto;
+}
+
+.card-grid .card-illustration,
+.deck-builder .card-illustration {
+    flex-shrink: 0;
+    min-height: 0;
+}
+
+.card-grid .card-copy,
+.deck-builder .card-copy {
+    flex: 1;
+    min-width: 0;
+}
+
+.card-grid > div > button:not(.card-button),
+.deck-builder > div > button,
+.deck-builder > div > p {
+    flex-shrink: 0;
+}

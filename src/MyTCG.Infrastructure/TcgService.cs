@@ -10,6 +10,7 @@ using MyTCG.Domain;
 namespace MyTCG.Infrastructure;
 public sealed class BoosterOptions
 {
+    public bool DailyLimitEnabled { get; set; } = true;
     public int DailyLimit { get; set; } = 3;
     public double[] FifthMultipliers { get; set; } = [1, 2, 4, 8, 16];
 }

@@ -10,20 +10,23 @@ public sealed class MainPage : ContentPage
 {
     private readonly AuthClient auth;
     private readonly VerticalStackLayout content = new() { Spacing = 16, Padding = new Thickness(26, 50, 26, 30) };
-    private readonly Label error = new() { TextColor = Color.FromArgb("FFC1CA"), FontSize = 14 };
+    private readonly Label error = new() { TextColor = Color.FromArgb("A52330"), FontSize = 14 };
     private bool registering, initialized;
-    private static readonly Color Violet = Color.FromArgb("BE9BEF");
+    private static readonly Color Canvas = Color.FromArgb("F5F5F7");
+    private static readonly Color Ink = Color.FromArgb("1D1D1F");
+    private static readonly Color Muted = Color.FromArgb("626269");
+    private static readonly Color Line = Color.FromArgb("DEDEE3");
     public MainPage(AuthClient auth)
     {
         this.auth = auth;
-        BackgroundColor = Color.FromArgb("0C1124"); Content = new ScrollView { Content = content };
+        BackgroundColor = Canvas; Content = new ScrollView { Content = content };
     }
     protected override async void OnAppearing()
     {
         base.OnAppearing();
         if (initialized) return;
         initialized = true;
-        content.Add(Title("✦ MyTCG")); content.Add(new ActivityIndicator { IsRunning = true, Color = Violet });
+        content.Add(Title("✦ MyTCG")); content.Add(new ActivityIndicator { IsRunning = true, Color = Ink });
         try { await auth.Initialize(); }
         catch (Exception ex) when (ex is ClientException or System.Security.Cryptography.CryptographicException) { error.Text = ex is ClientException ? ex.Message : "Stockage sécurisé indisponible. Réessayez."; }
         Render();
@@ -36,7 +39,7 @@ public sealed class MainPage : ContentPage
             content.Add(Title($"Bienvenue, {u.Username}.", 28));
             content.Add(Text("Votre cercle. Vos cartes. Votre univers."));
             foreach (var name in new[] { "◇ Ma collection", "▱ Mes decks", "⚔ Jouer", "♧ Mes groupes" })
-                content.Add(new Border { BackgroundColor = Color.FromArgb("1C2038"), Stroke = Color.FromArgb("35364F"), StrokeShape = new Microsoft.Maui.Controls.Shapes.RoundRectangle { CornerRadius = 16 }, Padding = 22, Content = new VerticalStackLayout { Children = { Title(name, 20), Text("À venir") } } });
+                content.Add(new Border { BackgroundColor = Colors.White, Stroke = Line, StrokeShape = new Microsoft.Maui.Controls.Shapes.RoundRectangle { CornerRadius = 16 }, Padding = 22, Content = new VerticalStackLayout { Children = { Title(name, 20), Text("À venir") } } });
             var username = Field("Username", u.Username); var email = Field("Email", u.Email); email.Keyboard = Keyboard.Email;
             content.Add(Title("Mon compte", 22)); content.Add(username); content.Add(email);
             content.Add(ActionButton("Enregistrer", async () => { await auth.UpdateMe(new(username.Text ?? "", email.Text ?? "")); Render(); }));
@@ -75,7 +78,7 @@ public sealed class MainPage : ContentPage
     }
     private Button ActionButton(string text, Func<Task> action)
     {
-        var b = new Button { Text = text, BackgroundColor = Violet, TextColor = Color.FromArgb("121426"), CornerRadius = 12, Padding = 14 };
+        var b = new Button { Text = text, BackgroundColor = Ink, TextColor = Colors.White, CornerRadius = 12, Padding = 14 };
         b.Clicked += async (_, _) => {
             if (!content.IsEnabled) return;
             content.IsEnabled = false; error.Text = ""; var original = b.Text; b.Text = "Veuillez patienter…";
@@ -85,7 +88,7 @@ public sealed class MainPage : ContentPage
             finally { b.Text = original; content.IsEnabled = true; }
         }; return b;
     }
-    private static Entry Field(string placeholder, string? value = "") => new() { Placeholder = placeholder, Text = value, TextColor = Colors.White, PlaceholderColor = Color.FromArgb("A7AEC7"), BackgroundColor = Color.FromArgb("171D32"), MaxLength = 254 };
-    private static Label Title(string value, int size = 34) => new() { Text = value, FontSize = size, FontAttributes = FontAttributes.Bold, TextColor = Violet };
-    private static Label Text(string value) => new() { Text = value, FontSize = 14, TextColor = Color.FromArgb("A7AEC7") };
+    private static Entry Field(string placeholder, string? value = "") => new() { Placeholder = placeholder, Text = value, TextColor = Ink, PlaceholderColor = Muted, BackgroundColor = Colors.White, MaxLength = 254 };
+    private static Label Title(string value, int size = 34) => new() { Text = value, FontSize = size, FontAttributes = FontAttributes.Bold, TextColor = Ink };
+    private static Label Text(string value) => new() { Text = value, FontSize = 14, TextColor = Muted };
 }

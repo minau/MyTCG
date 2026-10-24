@@ -27,6 +27,8 @@ public sealed class BoosterOpeningService(AppDbContext db, IOptions<BoosterOptio
     {
         await Member(user, tcg);
         var start = Midnight(Now);
+        if (!options.Value.DailyLimitEnabled)
+            return new(int.MaxValue, options.Value.DailyLimit, start.AddDays(1), IsUnlimited: true);
         var count = await db.Set<BoosterOpening>().CountAsync(x => x.UserId == user && x.TcgId == tcg && x.OpenedAt >= start && x.OpenedAt < start.AddDays(1));
         return new(Math.Max(0, options.Value.DailyLimit - count), options.Value.DailyLimit, start.AddDays(1));
     }
@@ -49,7 +51,7 @@ public sealed class BoosterOpeningService(AppDbContext db, IOptions<BoosterOptio
             return await OpeningDto(previous);
         var openedAt = Now;
         var start = Midnight(openedAt);
-        if (await db.Set<BoosterOpening>().CountAsync(x => x.UserId == user && x.TcgId == tcg && x.OpenedAt >= start && x.OpenedAt < start.AddDays(1)) >= options.Value.DailyLimit)
+        if (options.Value.DailyLimitEnabled && await db.Set<BoosterOpening>().CountAsync(x => x.UserId == user && x.TcgId == tcg && x.OpenedAt >= start && x.OpenedAt < start.AddDays(1)) >= options.Value.DailyLimit)
             throw Error(409, "Quota quotidien atteint.");
         var eligible = await db.Set<Card>().Where(x => x.TcgId == tcg && x.IsActive && x.DropWeight > 0).ToListAsync();
         if (eligible.Count == 0)
